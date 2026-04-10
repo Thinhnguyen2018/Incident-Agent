@@ -1,1 +1,1138 @@
 
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VNG Cloud — Incident Notification Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:        #0a0e14;
+  --bg2:       #111720;
+  --bg3:       #1a2233;
+  --border:    #1e2d42;
+  --border2:   #243350;
+  --accent:    #00c2ff;
+  --accent2:   #0085cc;
+  --green:     #00e5a0;
+  --red:       #ff4d6a;
+  --yellow:    #ffcc00;
+  --text:      #c8d8f0;
+  --text2:     #6b8ab0;
+  --text3:     #3d5478;
+  --mono:      'IBM Plex Mono', monospace;
+  --sans:      'IBM Plex Sans', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── Scanline overlay ── */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.04) 2px,
+    rgba(0,0,0,0.04) 4px
+  );
+  pointer-events:none;
+  z-index:1000;
+}
+
+/* ── Header ── */
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-badge {
+  background: var(--accent);
+  color: var(--bg);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  letter-spacing: 0.1em;
+}
+
+.logo-title {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.05em;
+}
+
+.logo-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text2);
+  letter-spacing: 0.08em;
+}
+
+.header-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  display: flex;
+  gap: 24px;
+}
+
+.header-meta span { display: flex; align-items: center; gap: 6px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── Tabs ── */
+.tabs {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  padding: 0 32px;
+  gap: 0;
+}
+
+.tab {
+  padding: 12px 24px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Layout ── */
+.main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── Section card ── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg3);
+}
+
+.card-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(0,194,255,0.08);
+  border: 1px solid rgba(0,194,255,0.2);
+  padding: 2px 8px;
+  letter-spacing: 0.05em;
+}
+
+.card-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.card-body { padding: 24px; }
+
+/* ── Upload zone ── */
+.upload-zone {
+  border: 2px dashed var(--border2);
+  padding: 48px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(0,194,255,0.04);
+}
+
+.upload-icon {
+  font-size: 40px;
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+
+.upload-label {
+  font-size: 15px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.upload-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.upload-zone input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+}
+
+.upload-status {
+  margin-top: 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--green);
+  display: none;
+}
+
+/* ── Form ── */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1 / -1; }
+
+label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+label .req { color: var(--red); margin-left: 2px; }
+
+input[type=text], input[type=datetime-local], textarea, select {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent);
+}
+
+select option { background: var(--bg2); }
+textarea { resize: vertical; min-height: 80px; }
+
+/* Template selector */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.template-btn {
+  border: 1px solid var(--border2);
+  background: var(--bg);
+  color: var(--text2);
+  padding: 14px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  font-family: var(--sans);
+}
+
+.template-btn:hover {
+  border-color: var(--accent2);
+  color: var(--text);
+}
+
+.template-btn.selected {
+  border-color: var(--accent);
+  background: rgba(0,194,255,0.06);
+  color: var(--accent);
+}
+
+.t-num {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  line-height: 1;
+}
+
+.t-label { font-size: 12px; line-height: 1.4; }
+
+/* Conditional fields */
+.conditional { display: none; }
+.conditional.show { display: contents; }
+
+/* ── Buttons ── */
+.btn {
+  padding: 12px 28px;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.btn-primary:hover { background: #33d0ff; }
+.btn-primary:disabled { background: var(--border2); color: var(--text3); cursor: not-allowed; }
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+}
+
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid rgba(255,77,106,0.3);
+  color: var(--red);
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
+.btn-danger:hover { background: rgba(255,77,106,0.1); }
+
+/* ── Preview table ── */
+.preview-wrap {
+  margin-top: 0;
+}
+
+.preview-stats {
+  display: flex;
+  gap: 24px;
+  padding: 16px 20px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.stat { display: flex; flex-direction: column; gap: 3px; }
+.stat-val { font-size: 20px; font-weight: 600; color: var(--accent); line-height: 1; }
+.stat-label { color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+.group-block {
+  border-bottom: 1px solid var(--border);
+}
+
+.group-header {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  background: var(--bg2);
+  transition: background 0.1s;
+}
+
+.group-header:hover { background: var(--bg3); }
+
+.group-email {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  flex: 1;
+}
+
+.group-cc {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.group-count {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: rgba(0,194,255,0.1);
+  color: var(--accent);
+  padding: 2px 10px;
+  border: 1px solid rgba(0,194,255,0.2);
+}
+
+.group-chevron {
+  color: var(--text3);
+  transition: transform 0.2s;
+  font-size: 12px;
+}
+
+.group-block.expanded .group-chevron { transform: rotate(90deg); }
+
+.group-devices {
+  display: none;
+  overflow: auto;
+}
+
+.group-block.expanded .group-devices { display: block; }
+
+table.devices-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+table.devices-table th {
+  background: rgba(0,194,255,0.05);
+  color: var(--text2);
+  font-weight: 500;
+  padding: 8px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.05em;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+table.devices-table td {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+table.devices-table tr:last-child td { border-bottom: none; }
+table.devices-table tr:hover td { background: rgba(0,194,255,0.03); }
+
+/* ── Send result ── */
+.result-banner {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--mono);
+  margin-bottom: 20px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+
+.result-banner.success { background: rgba(0,229,160,0.08); border: 1px solid rgba(0,229,160,0.2); }
+.result-banner.partial  { background: rgba(255,204,0,0.08);  border: 1px solid rgba(255,204,0,0.2);  }
+.result-banner.failed   { background: rgba(255,77,106,0.08); border: 1px solid rgba(255,77,106,0.2); }
+
+.result-icon { font-size: 24px; }
+.result-text { flex: 1; }
+.result-status { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.result-status.success { color: var(--green); }
+.result-status.partial  { color: var(--yellow); }
+.result-status.failed   { color: var(--red); }
+.result-sub { font-size: 11px; color: var(--text2); }
+
+/* ── History ── */
+.history-item {
+  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 20px;
+  transition: background 0.1s;
+}
+
+.history-item:hover { background: var(--bg3); }
+.history-item:last-child { border-bottom: none; }
+
+.history-ts {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+.history-info { display: flex; flex-direction: column; gap: 4px; }
+.history-service { font-size: 14px; font-weight: 500; color: var(--text); }
+.history-desc { font-size: 12px; color: var(--text2); }
+
+.history-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 3px 10px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.history-badge.success { color: var(--green); border-color: rgba(0,229,160,0.3); background: rgba(0,229,160,0.06); }
+.history-badge.partial  { color: var(--yellow); border-color: rgba(255,204,0,0.3); background: rgba(255,204,0,0.06); }
+.history-badge.failed   { color: var(--red); border-color: rgba(255,77,106,0.3); background: rgba(255,77,106,0.06); }
+
+/* Template label badges */
+.tmpl-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  background: rgba(0,194,255,0.08);
+  border: 1px solid rgba(0,194,255,0.15);
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+/* ── Loading spinner ── */
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(0,194,255,0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+
+/* ── Gmail auth banner ── */
+.auth-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  margin-bottom: 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+}
+.auth-banner.ok    { border-color: rgba(0,229,160,0.3); background: rgba(0,229,160,0.05); }
+.auth-banner.warn  { border-color: rgba(255,204,0,0.3); background: rgba(255,204,0,0.05); }
+.auth-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.auth-dot.ok   { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.auth-dot.warn { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); animation: pulse 1.5s infinite; }
+.auth-text { flex: 1; }
+.auth-label { font-weight: 500; margin-bottom: 2px; }
+.auth-label.ok   { color: var(--green); }
+.auth-label.warn { color: var(--yellow); }
+.auth-sub { color: var(--text3); font-size: 11px; }
+/* ── Toast ── */
+#toast {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 12px 20px;
+  z-index: 999;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.25s;
+  pointer-events: none;
+  max-width: 360px;
+}
+
+#toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── Misc ── */
+.empty-state {
+  padding: 60px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text3);
+}
+
+.send-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.results-list { margin-top: 0; }
+.result-row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.result-row:last-child { border-bottom: none; }
+.result-ok { color: var(--green); }
+.result-fail { color: var(--red); }
+.result-to { color: var(--text); }
+.result-cc { color: var(--text3); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-badge">VNG CLOUD</span>
+    <div>
+      <div class="logo-title">INCIDENT NOTIFICATION AGENT</div>
+      <div class="logo-sub">EMAIL DISPATCH SYSTEM · v2.0</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <span><span class="dot"></span> SYSTEM ONLINE</span>
+    <span id="clock"></span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="tab active" onclick="switchTab('send', this)">▶ GỬI THÔNG BÁO</div>
+  <div class="tab" onclick="switchTab('history', this)">◈ LỊCH SỬ GỬI MAIL</div>
+</nav>
+
+<div class="main">
+
+<!-- ════════════════ TAB: GỬI THÔNG BÁO ════════════════ -->
+<div class="page active" id="page-send">
+
+  <!-- Gmail Auth Status -->
+  <div id="authBanner" class="auth-banner warn">
+    <div class="auth-dot warn"></div>
+    <div class="auth-text">
+      <div class="auth-label warn">KIỂM TRA GMAIL AUTH...</div>
+      <div class="auth-sub">Đang xác minh trạng thái đăng nhập</div>
+    </div>
+  </div>
+
+  <!-- STEP 1: Upload -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">01</span>
+      <span class="card-title">Upload file Excel từ OPTool</span>
+    </div>
+    <div class="card-body">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileChange(this)"/>
+        <div class="upload-icon">⊞</div>
+        <div class="upload-label">Kéo thả file vào đây hoặc click để chọn</div>
+        <div class="upload-sub">Chấp nhận: .xlsx · .xls · Tối đa 20MB</div>
+      </div>
+      <div class="upload-status" id="uploadStatus"></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Preview -->
+  <div class="card" id="previewCard" style="display:none">
+    <div class="card-header">
+      <span class="card-num">02</span>
+      <span class="card-title">Preview dữ liệu</span>
+      <span style="margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--text3)">Click vào từng nhóm để xem VM</span>
+    </div>
+    <div class="preview-wrap" id="previewContent"></div>
+  </div>
+
+  <!-- STEP 3: Form -->
+  <div class="card" id="formCard" style="display:none">
+    <div class="card-header">
+      <span class="card-num">03</span>
+      <span class="card-title">Thông tin sự cố</span>
+    </div>
+    <div class="card-body">
+
+      <!-- Template selector -->
+      <div class="form-group full" style="margin-bottom:24px">
+        <label>Loại thông báo <span class="req">*</span></label>
+        <div class="template-grid">
+          <div class="template-btn" onclick="selectTemplate('1', this)">
+            <div class="t-num">01</div>
+            <div class="t-label">Sự cố xử lý nhanh<br/><span style="color:var(--text3);font-size:11px">≤ 20 phút</span></div>
+          </div>
+          <div class="template-btn" onclick="selectTemplate('2', this)">
+            <div class="t-num">02</div>
+            <div class="t-label">Xử lý kéo dài<br/><span style="color:var(--text3);font-size:11px">> 20 phút</span></div>
+          </div>
+          <div class="template-btn" onclick="selectTemplate('3', this)">
+            <div class="t-num">03</div>
+            <div class="t-label">Cập nhật tiến độ<br/><span style="color:var(--text3);font-size:11px">In progress</span></div>
+          </div>
+          <div class="template-btn selected" onclick="selectTemplate('4', this)">
+            <div class="t-num">04</div>
+            <div class="t-label">Hoàn tất xử lý<br/><span style="color:var(--text3);font-size:11px">Resolved</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Tên dịch vụ / hệ thống <span class="req">*</span></label>
+          <input type="text" id="service_name" placeholder="Ví dụ: vServer HCM1, VKS, vStorage"/>
+        </div>
+        <div class="form-group full">
+          <label>Mô tả sự cố <span class="req">*</span></label>
+          <input type="text" id="incident_desc" value="một số khách hàng mất kết nối dịch vụ" placeholder="Mô tả ngắn gọn về sự cố"/>
+        </div>
+        <div class="form-group">
+          <label>Thời gian bắt đầu <span class="req">*</span></label>
+          <input type="text" id="start_time" placeholder="DD-MM-YYYY HH:MM"/>
+        </div>
+        <div class="conditional" id="field_end_time">
+          <div class="form-group">
+            <label>Thời gian kết thúc <span class="req">*</span></label>
+            <input type="text" id="end_time" placeholder="DD-MM-YYYY HH:MM"/>
+          </div>
+        </div>
+        <div class="form-group full">
+          <label>Nguyên nhân <span class="req">*</span></label>
+          <textarea id="root_cause" placeholder="Mô tả nguyên nhân sự cố..."></textarea>
+        </div>
+        <div class="conditional full" id="field_status">
+          <div class="form-group">
+            <label>Tình trạng xử lý</label>
+            <input type="text" id="status_field" value="VNG Cloud đang tập trung nguồn lực để khắc phục và sẽ thông báo ngay khi dịch vụ hoạt động trở lại"/>
+          </div>
+        </div>
+        <div class="conditional full" id="field_solution">
+          <div class="form-group">
+            <label>Hướng xử lý / giải pháp <span class="req">*</span></label>
+            <textarea id="solution" placeholder="Mô tả hướng xử lý..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="send-actions">
+        <span id="sendSpinner" style="display:none"><span class="spinner"></span></span>
+        <button class="btn btn-outline" onclick="resetAll()">↺ RESET</button>
+        <button class="btn btn-primary" id="sendBtn" onclick="sendEmail()">▶ GỬI EMAIL</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: Result -->
+  <div id="resultSection" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">04</span>
+        <span class="card-title">Kết quả gửi</span>
+      </div>
+      <div id="resultBanner"></div>
+      <div class="results-list" id="resultsList"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════ TAB: LỊCH SỬ ════════════════ -->
+<div class="page" id="page-history">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">◈</span>
+      <span class="card-title">Lịch sử gửi mail</span>
+      <button class="btn btn-outline" style="margin-left:auto;padding:6px 16px;font-size:11px" onclick="loadHistory()">↻ TẢI LẠI</button>
+    </div>
+    <div id="historyList">
+      <div class="empty-state">Đang tải...</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<div id="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+let state = {
+  filepath: null,
+  fileId: null,
+  template: '4',
+};
+
+// ── Clock ─────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleString('vi-VN', { hour12: false }).replace(',', '');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Tabs ──────────────────────────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'history') loadHistory();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function toast(msg, dur = 3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ── File Upload ───────────────────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+
+uploadZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  uploadZone.classList.add('dragover');
+});
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) uploadFile(file);
+});
+
+function handleFileChange(input) {
+  if (input.files[0]) uploadFile(input.files[0]);
+}
+
+async function uploadFile(file) {
+  const statusEl = document.getElementById('uploadStatus');
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '<span class="spinner"></span>  Đang đọc file...';
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+
+    if (!res.ok) {
+      statusEl.innerHTML = `✗ ${data.error}`;
+      statusEl.style.color = 'var(--red)';
+      return;
+    }
+
+    state.filepath = data.filepath;
+    state.fileId = data.file_id;
+
+    statusEl.innerHTML = `✓ ${data.filename} — ${data.total_rows} dòng · ${data.total_groups} nhóm`;
+    statusEl.style.color = 'var(--green)';
+
+    renderPreview(data);
+    document.getElementById('previewCard').style.display = '';
+    document.getElementById('formCard').style.display = '';
+
+    // Set now as default start_time
+    if (!document.getElementById('start_time').value) {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      document.getElementById('start_time').value =
+        `${pad(now.getDate())}-${pad(now.getMonth()+1)}-${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    }
+
+  } catch(e) {
+    statusEl.innerHTML = `✗ Lỗi kết nối: ${e.message}`;
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+// ── Preview ───────────────────────────────────────────────────────────────
+function renderPreview(data) {
+  const wrap = document.getElementById('previewContent');
+
+  const statsHtml = `
+    <div class="preview-stats">
+      <div class="stat"><div class="stat-val">${data.total_rows}</div><div class="stat-label">Tổng VM</div></div>
+      <div class="stat"><div class="stat-val">${data.total_groups}</div><div class="stat-label">Nhóm (Owned By)</div></div>
+      <div class="stat"><div class="stat-val">${data.columns.length}</div><div class="stat-label">Cột đã lọc</div></div>
+    </div>`;
+
+  const groupsHtml = data.preview.map((g, i) => `
+    <div class="group-block" id="grp-${i}">
+      <div class="group-header" onclick="toggleGroup(${i})">
+        <span class="group-count">${g.count} VM</span>
+        <span class="group-email">${g.owned_by}</span>
+        <span class="group-cc">CC: ${g.cc.join(', ') || '—'}</span>
+        <span class="group-chevron">▶</span>
+      </div>
+      <div class="group-devices">
+        <table class="devices-table">
+          <thead><tr>
+            <th>Name</th><th>IP Address</th><th>Floating IP</th>
+          </tr></thead>
+          <tbody>
+            ${g.devices.map(d => `
+              <tr>
+                <td>${d['Name'] || '—'}</td>
+                <td>${d['IP Address'] || '—'}</td>
+                <td>${d['Floating IP'] || '—'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`).join('');
+
+  wrap.innerHTML = statsHtml + groupsHtml;
+}
+
+function toggleGroup(i) {
+  const el = document.getElementById('grp-' + i);
+  el.classList.toggle('expanded');
+}
+
+// ── Template selector ─────────────────────────────────────────────────────
+function selectTemplate(t, btn) {
+  state.template = t;
+  document.querySelectorAll('.template-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  updateConditionalFields();
+
+// Auth check
+async function checkAuthStatus() {
+  try {
+    const res = await fetch('/api/auth/status');
+    const data = await res.json();
+    const banner = document.getElementById('authBanner');
+    if (!banner) return;
+    if (data.authenticated) {
+      banner.className = 'auth-banner ok';
+      banner.innerHTML = '<div class="auth-dot ok"></div><div class="auth-text"><div class="auth-label ok">GMAIL DA XAC THUC</div><div class="auth-sub">San sang gui email qua Gmail API</div></div>';
+    } else {
+      banner.className = 'auth-banner warn';
+      banner.innerHTML = '<div class="auth-dot warn"></div><div class="auth-text"><div class="auth-label warn">CHUA DANG NHAP GMAIL</div><div class="auth-sub">Can xac thuc truoc khi gui email</div></div><a href="/auth/gmail" target="_blank"><button class="btn btn-primary" style="padding:8px 20px;font-size:11px">▶ DANG NHAP GMAIL</button></a>';
+    }
+  } catch(e) { console.error(e); }
+}
+checkAuthStatus();
+}
+
+function updateConditionalFields() {
+  const t = state.template;
+  const endField  = document.getElementById('field_end_time');
+  const statField = document.getElementById('field_status');
+  const solField  = document.getElementById('field_solution');
+
+  endField.className  = (t === '1' || t === '4') ? 'conditional show' : 'conditional';
+  statField.className = (t === '2') ? 'conditional full show' : 'conditional full';
+  solField.className  = (t === '3') ? 'conditional full show' : 'conditional full';
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────
+async function sendEmail() {
+  if (!state.filepath) { toast('⚠ Vui lòng upload file Excel trước'); return; }
+
+  const get = id => document.getElementById(id)?.value?.trim() || '';
+
+  const payload = {
+    filepath:      state.filepath,
+    template_type: state.template,
+    service_name:  get('service_name'),
+    incident_desc: get('incident_desc'),
+    start_time:    get('start_time'),
+    end_time:      get('end_time'),
+    root_cause:    get('root_cause'),
+    status:        get('status_field'),
+    solution:      get('solution'),
+  };
+
+  // Basic validation
+  if (!payload.service_name)  { toast('⚠ Thiếu tên dịch vụ'); return; }
+  if (!payload.incident_desc) { toast('⚠ Thiếu mô tả sự cố'); return; }
+  if (!payload.start_time)    { toast('⚠ Thiếu thời gian bắt đầu'); return; }
+  if (!payload.root_cause)    { toast('⚠ Thiếu nguyên nhân'); return; }
+  if ((state.template === '1' || state.template === '4') && !payload.end_time) {
+    toast('⚠ Thiếu thời gian kết thúc'); return;
+  }
+  if (state.template === '3' && !payload.solution) {
+    toast('⚠ Thiếu hướng xử lý / giải pháp'); return;
+  }
+
+  const btn = document.getElementById('sendBtn');
+  const spinner = document.getElementById('sendSpinner');
+  btn.disabled = true;
+  spinner.style.display = 'inline';
+
+  try {
+    const res = await fetch('/api/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      toast(`✗ ${data.error}`);
+      return;
+    }
+
+    renderResult(data);
+    document.getElementById('resultSection').style.display = '';
+    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch(e) {
+    toast(`✗ Lỗi kết nối: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+  }
+}
+
+function renderResult(data) {
+  const icons   = { success: '✓', partial: '△', failed: '✗' };
+  const labels  = { success: 'GỬI THÀNH CÔNG', partial: 'GỬI MỘT PHẦN', failed: 'GỬI THẤT BẠI' };
+  const s = data.status;
+
+  document.getElementById('resultBanner').innerHTML = `
+    <div class="result-banner ${s}">
+      <span class="result-icon">${icons[s]}</span>
+      <div class="result-text">
+        <div class="result-status ${s}">${labels[s]}</div>
+        <div class="result-sub">${data.sent}/${data.total} email đã gửi · Mode: ${data.mail_mode || 'graph'}</div>
+      </div>
+    </div>`;
+
+  document.getElementById('resultsList').innerHTML = data.results.map(r => `
+    <div class="result-row">
+      <span class="${r.sent ? 'result-ok' : 'result-fail'}">${r.sent ? '✓' : '✗'}</span>
+      <div>
+        <div class="result-to">${r.to}</div>
+        <div class="result-cc">CC: ${(r.cc||[]).join(', ') || '—'}${r.error ? ' · ERR: ' + r.error : ''}</div>
+      </div>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--text2)">${r.count} VM</span>
+      <span class="${r.sent ? 'result-ok' : 'result-fail'}" style="font-family:var(--mono);font-size:11px">
+        ${r.sent ? 'SENT' : 'FAILED'}
+      </span>
+    </div>`).join('');
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────
+function resetAll() {
+  state.filepath = null;
+  state.fileId = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('uploadStatus').style.display = 'none';
+  document.getElementById('previewCard').style.display = 'none';
+  document.getElementById('formCard').style.display = 'none';
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('service_name').value = '';
+  document.getElementById('incident_desc').value = 'một số khách hàng mất kết nối dịch vụ';
+  document.getElementById('start_time').value = '';
+  document.getElementById('end_time').value = '';
+  document.getElementById('root_cause').value = '';
+  toast('✓ Đã reset');
+}
+
+// ── History ───────────────────────────────────────────────────────────────
+const TEMPLATE_NAMES = {
+  '1': 'NHANH',
+  '2': 'KÉO DÀI',
+  '3': 'CẬP NHẬT',
+  '4': 'HOÀN TẤT',
+};
+
+async function loadHistory() {
+  const el = document.getElementById('historyList');
+  el.innerHTML = '<div class="empty-state">Đang tải...</div>';
+
+  try {
+    const res = await fetch('/api/history');
+    const data = await res.json();
+
+    if (!data.length) {
+      el.innerHTML = '<div class="empty-state">Chưa có lịch sử gửi mail nào.</div>';
+      return;
+    }
+
+    el.innerHTML = data.map(h => `
+      <div class="history-item" id="hist-${h.id}">
+        <div class="history-ts">${h.timestamp}</div>
+        <div class="history-info">
+          <div class="history-service">
+            <span class="tmpl-badge">${TEMPLATE_NAMES[h.template] || h.template}</span>
+            &nbsp;${h.service}
+          </div>
+          <div class="history-desc">${h.incident} · ${h.start_time}${h.end_time ? ' → ' + h.end_time : ''}</div>
+        </div>
+        <div class="history-badge ${h.sent === h.total ? 'success' : h.sent > 0 ? 'partial' : 'failed'}">
+          ${h.sent}/${h.total} SENT
+        </div>
+        <button class="btn btn-danger" onclick="deleteHistory('${h.id}')">✕ XÓA</button>
+      </div>`).join('');
+
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state">Lỗi: ${e.message}</div>`;
+  }
+}
+
+async function deleteHistory(id) {
+  await fetch(`/api/history/${id}`, { method: 'DELETE' });
+  document.getElementById('hist-' + id)?.remove();
+  toast('✓ Đã xóa bản ghi');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+updateConditionalFields();
+</script>
+<script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
+<script>
+  if (window.microsoftTeams) {
+    microsoftTeams.app.initialize();
+  }
+</script>
+</body>
+</html>
