@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Incident Notifier — Teams Config</title>
+  <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: #f3f2f1;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 32px 40px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      max-width: 360px;
+    }
+    .icon { font-size: 40px; margin-bottom: 12px; }
+    h2 { margin: 0 0 8px; font-size: 18px; color: #242424; }
+    p  { margin: 0; font-size: 13px; color: #616161; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">⚡</div>
+    <h2>Incident Notifier</h2>
+    <p>VNG Cloud — Gửi thông báo sự cố qua email.<br/>Click <strong>Save</strong> để thêm tab này vào kênh.</p>
+  </div>
+
+  <script>
+    microsoftTeams.app.initialize().then(() => {
+      microsoftTeams.pages.config.registerOnSaveHandler((saveEvent) => {
+        microsoftTeams.pages.config.setConfig({
+          suggestedDisplayName: "Incident Notifier",
+          contentUrl:  "https://incident-agent.onrender.com/",
+          websiteUrl:  "https://incident-agent.onrender.com/"
+        });
+        saveEvent.notifySuccess();
+      });
+
+      microsoftTeams.pages.config.setValidityState(true);
+    });
+  </script>
+</body>
+</html>
