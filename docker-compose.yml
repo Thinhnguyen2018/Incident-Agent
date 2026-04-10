@@ -1,0 +1,14 @@
+
+
+services:
+  incident-agent:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./uploads:/app/uploads     # persist uploaded files
+      - ./history:/app/history     # persist send history
+      - ./.env:/app/.env:ro        # inject secrets
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped
