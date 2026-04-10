@@ -66,6 +66,11 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/teams-config")
+def teams_config():
+    return render_template("teams_config.html")
+
+
 @app.route("/api/upload", methods=["POST"])
 def upload_excel():
     """Upload file Excel, trả về preview dữ liệu."""
@@ -241,7 +246,10 @@ def auth_gmail():
     """Redirect user to Google consent screen."""
     if not GMAIL_CLIENT_ID:
         return jsonify({"error": "GMAIL_CLIENT_ID chưa được cấu hình trong .env"}), 500
-    redirect_uri = request.host_url.rstrip("/") + "/auth/gmail/callback"
+    redirect_uri = os.getenv(
+        "GMAIL_REDIRECT_URI",
+        request.host_url.rstrip("/") + "/auth/gmail/callback"
+    )
     url = build_oauth_url(redirect_uri)
     from flask import redirect as flask_redirect
     return flask_redirect(url)
@@ -255,7 +263,10 @@ def auth_gmail_callback():
     if error or not code:
         return f"<h3>Lỗi xác thực: {error or 'Không nhận được code'}</h3>", 400
     try:
-        redirect_uri = request.host_url.rstrip("/") + "/auth/gmail/callback"
+        redirect_uri = os.getenv(
+            "GMAIL_REDIRECT_URI",
+            request.host_url.rstrip("/") + "/auth/gmail/callback"
+        )
         exchange_code_for_token(code, redirect_uri)
         return """
         <html><body style="font-family:monospace;background:#0a0e14;color:#00e5a0;
