@@ -469,15 +469,17 @@ def send_email(token: str, to_email: str, subject: str, html_body: str,
     - to_email  : dia chi chinh (Owned By)
     - cc_emails : danh sach CC (Salesman Email)
     """
-
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"]    = SENDER_EMAIL
     msg["To"]      = to_email
-    if cc_emails:
-        msg["Cc"] = ", ".join(cc_emails)
 
-  
+    # Luon CC ve chinh sender de luu ban sao
+    cc_all = list(cc_emails or [])
+    if SENDER_EMAIL.lower() not in [e.lower() for e in cc_all]:
+        cc_all.append(SENDER_EMAIL)
+    msg["Cc"] = ", ".join(cc_all)
+
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
