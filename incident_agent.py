@@ -163,7 +163,7 @@ def extract_columns(excel_path: str) -> pd.DataFrame:
             print(f"    ⚠  Không tìm thấy cột '{col_key}' trong file. Bỏ qua.")
 
     df = df_raw[list(found.keys())].rename(columns=found).copy()
-    df = df.dropna(subset=["Salesman Email"])
+    # Salesman Email là tuỳ chọn — không loại row nếu thiếu
 
     print(f"    ✓ Đọc xong — {len(df)} dòng, {len(df.columns)} cột được lọc")
     return df
