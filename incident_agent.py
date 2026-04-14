@@ -469,12 +469,20 @@ def send_email(token: str, to_email: str, subject: str, html_body: str,
     - to_email  : dia chi chinh (Owned By)
     - cc_emails : danh sach CC (Salesman Email)
     """
+    SELF_BCC = SENDER_EMAIL  # luon BCC lai chinh minh de luu ban sao
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"]    = SENDER_EMAIL
     msg["To"]      = to_email
-    if cc_emails:
-        msg["Cc"] = ", ".join(cc_emails)
+
+    # Loc CC — bo email cua chinh nguoi gui (Gmail tu block neu From == CC)
+    filtered_cc = [e for e in (cc_emails or []) if e.lower() != SENDER_EMAIL.lower()]
+    if filtered_cc:
+        msg["Cc"] = ", ".join(filtered_cc)
+
+    # BCC ve chinh minh de luu ban sao trong Sent/Inbox
+    msg["Bcc"] = SELF_BCC
 
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
