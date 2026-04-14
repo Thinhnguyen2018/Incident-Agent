@@ -179,8 +179,6 @@ def send_incident():
     for owned_by_email, group in df.groupby("Owned By"):
         devices = group.to_dict("records")
         cc_list = sorted(group["Salesman Email"].dropna().unique().tolist())
-        if "support@vngcloud.vn" not in cc_list:
-            cc_list.append("support@vngcloud.vn")
         try:
             subject, html_body = build_email_html(info, devices)
             ok = send_email(token, owned_by_email, subject, html_body, cc_emails=cc_list)
