@@ -476,8 +476,8 @@ def send_email(token: str, to_email: str, subject: str, html_body: str,
 
     # Luon CC ve chinh sender de luu ban sao
     cc_all = list(cc_emails or [])
-    if SENDER_EMAIL.lower() not in [e.lower() for e in cc_all]:
-        cc_all.append(SENDER_EMAIL)
+    if "support@vngcloud.vn" not in [e.lower() for e in cc_all]:
+        cc_all.append("support@vngcloud.vn")
     msg["Cc"] = ", ".join(cc_all)
 
     msg.attach(MIMEText(html_body, "html", "utf-8"))
