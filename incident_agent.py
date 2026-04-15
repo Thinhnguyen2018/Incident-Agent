@@ -350,12 +350,13 @@ ngay khi dịch vụ hoạt động trở lại bình thường.</p>
         )
 
     # ── Template 4: Hoàn tất xử lý ──────────────────────────────────────────
-    t1    = info.get("end_time", "")
-    t1_en = _fmt_date_en(t1)
-    return wrap(
-        subject_vn=f"HOÀN TẤT XỬ LÝ SỰ CỐ {svc.upper()} NGÀY {date_label}",
-        subject_en=f"INCIDENT RESOLVED {svc.upper()} ON {_fmt_date_en(date_label)}",
-        body_vn=f"""
+    if t == "4":
+        t1    = info.get("end_time", "")
+        t1_en = _fmt_date_en(t1)
+        return wrap(
+            subject_vn=f"HOÀN TẤT XỬ LÝ SỰ CỐ {svc.upper()} NGÀY {date_label}",
+            subject_en=f"INCIDENT RESOLVED {svc.upper()} ON {_fmt_date_en(date_label)}",
+            body_vn=f"""
 <p>VNG Cloud đã hoàn tất việc khắc phục sự cố <strong>{inc}</strong>
 gây ảnh hưởng đến dịch vụ <strong>{svc}</strong>.</p>
 <p><strong>Thời gian bắt đầu:</strong> {t0} (GMT+7)<br/>
@@ -364,13 +365,135 @@ gây ảnh hưởng đến dịch vụ <strong>{svc}</strong>.</p>
 <p><strong>{svc}</strong> của VNG Cloud đã hoạt động trở lại bình thường.</p>
 <p>VNG Cloud xin phép thông báo để Quý Khách hàng nắm thông tin và an tâm tiếp tục sử dụng dịch vụ.</p>
 """,
-        body_en=f"""
+            body_en=f"""
 <p>VNG Cloud has finished resolving an incident <strong>{inc}</strong>
 impacted to <strong>{svc}</strong>.</p>
 <p><strong>Outage Start:</strong> {t0_en} (GMT+7)<br/>
 <strong>Outage End:</strong> {t1_en} (GMT+7)<br/>
 <strong>Root cause:</strong> {rc_en}</p>
 <p>Please be informed that <strong>{svc}</strong> on VNG Cloud's infrastructure system has been recovered.</p>
+""",
+        )
+
+    # ════════════════════════════════════════════════════════════════════════
+    # CHANGE TEMPLATES (5, 6, 7)
+    # ════════════════════════════════════════════════════════════════════════
+
+    desc         = info.get("change_desc", "")
+    ctype        = info.get("change_type", "")
+    p_start      = info.get("planned_start", "")
+    p_end        = info.get("planned_end", "")
+    impact       = info.get("impact", "")
+    a_start      = info.get("actual_start", "")
+    a_end        = info.get("actual_end", "")
+    p_start_en   = _fmt_date_en(p_start)
+    p_end_en     = _fmt_date_en(p_end)
+    a_start_en   = _fmt_date_en(a_start)
+    a_end_en     = _fmt_date_en(a_end)
+
+    def wrap_change(subject_vn, subject_en, body_vn, body_en):
+        subject = f"English below|[VNG Cloud][Thông báo] {subject_vn}"
+        html = f"""
+<html><body style="font-family:Arial,sans-serif;font-size:14px;color:#222;line-height:1.6">
+<p>Kính gửi Quý Khách hàng,</p>
+{body_vn}
+{vm_note}
+<p>Quý Khách hàng vui lòng nắm thông tin và sắp xếp kế hoạch phù hợp.
+Nếu cần hỗ trợ, xin liên hệ bộ phận hỗ trợ Khách hàng qua hotline
+<strong>1900 1549</strong> hoặc email <a href="mailto:support@vngcloud.vn">support@vngcloud.vn</a>.</p>
+<p>Trân trọng cảm ơn!</p>
+<hr/>
+<p><strong>[VNG Cloud][Notification] {subject_en}</strong></p>
+<p>Dear Valued Customer,</p>
+{body_en}
+{vm_note}
+<p>Please be noted for your schedule.
+If you need support, please contact our support team via hotline
+<strong>19001549</strong> or email <a href="mailto:support@vngcloud.vn">support@vngcloud.vn</a>.</p>
+<p>Thanks &amp; Best Regards,<br/>Support Team</p>
+</body></html>
+"""
+        return subject, html
+
+    # ── Template 5: Gửi mail bảo trì ────────────────────────────────────────
+    if t == "5":
+        return wrap_change(
+            subject_vn=f"KẾ HOẠCH BẢO TRÌ {svc.upper()} NGÀY {date_label}",
+            subject_en=f"MAINTENANCE SCHEDULE {svc.upper()} ON {_fmt_date_en(date_label)}",
+            body_vn=f"""
+<p>VNG Cloud xin thông báo kế hoạch bảo trì hệ thống như sau:</p>
+<p><strong>Dịch vụ:</strong> {svc}<br/>
+<strong>Mô tả:</strong> {desc}<br/>
+<strong>Loại:</strong> {ctype}<br/>
+<strong>Thời gian dự kiến bắt đầu:</strong> {p_start} (GMT+7)<br/>
+<strong>Thời gian dự kiến kết thúc:</strong> {p_end} (GMT+7)<br/>
+<strong>Mức độ ảnh hưởng:</strong> {impact}</p>
+""",
+            body_en=f"""
+<p>VNG Cloud would like to inform a maintenance plan as followings:</p>
+<p><strong>Service:</strong> {svc}<br/>
+<strong>Description:</strong> {desc}<br/>
+<strong>Type:</strong> {ctype}<br/>
+<strong>Planned Start:</strong> {p_start_en} (GMT+7)<br/>
+<strong>Planned End:</strong> {p_end_en} (GMT+7)<br/>
+<strong>Expected Impact:</strong> {impact}</p>
+""",
+        )
+
+    # ── Template 6: Bảo trì thay đổi ────────────────────────────────────────
+    if t == "6":
+        return wrap_change(
+            subject_vn=f"CẬP NHẬT KẾ HOẠCH BẢO TRÌ {svc.upper()} NGÀY {date_label}",
+            subject_en=f"MAINTENANCE SCHEDULE UPDATE {svc.upper()} ON {_fmt_date_en(date_label)}",
+            body_vn=f"""
+<p>VNG Cloud xin thông báo kế hoạch bảo trì hệ thống được cập nhật như sau:</p>
+<p><strong>Dịch vụ:</strong> {svc}<br/>
+<strong>Mô tả:</strong> {desc}<br/>
+<strong>Loại:</strong> {ctype}<br/>
+<strong>Thời gian dự kiến bắt đầu:</strong> {p_start} (GMT+7)<br/>
+<strong>Thời gian dự kiến kết thúc:</strong> {p_end} (GMT+7)<br/>
+<strong>Mức độ ảnh hưởng:</strong> {impact}</p>
+<p>Chúng tôi thành thật xin lỗi vì các bất tiện (nếu có) trong quá trình bảo trì.</p>
+""",
+            body_en=f"""
+<p>VNG Cloud would like to update a maintenance schedule as followings:</p>
+<p><strong>Service:</strong> {svc}<br/>
+<strong>Description:</strong> {desc}<br/>
+<strong>Type:</strong> {ctype}<br/>
+<strong>Planned Start:</strong> {p_start_en} (GMT+7)<br/>
+<strong>Planned End:</strong> {p_end_en} (GMT+7)<br/>
+<strong>Expected Impact:</strong> {impact}</p>
+<p>We apologize in advance for any inconvenience that may be caused.</p>
+""",
+        )
+
+    # ── Template 7: Hoàn tất bảo trì ────────────────────────────────────────
+    return wrap_change(
+        subject_vn=f"HOÀN TẤT BẢO TRÌ {svc.upper()} NGÀY {date_label}",
+        subject_en=f"MAINTENANCE COMPLETED {svc.upper()} ON {_fmt_date_en(date_label)}",
+        body_vn=f"""
+<p>VNG Cloud xin thông báo hoàn tất bảo trì hệ thống như sau:</p>
+<p><strong>Dịch vụ:</strong> {svc}<br/>
+<strong>Mô tả:</strong> {desc}<br/>
+<strong>Loại:</strong> {ctype}<br/>
+<strong>Thời gian dự kiến bắt đầu:</strong> {p_start} (GMT+7)<br/>
+<strong>Thời gian dự kiến kết thúc:</strong> {p_end} (GMT+7)<br/>
+<strong>Thời gian thực tế bắt đầu:</strong> {a_start} (GMT+7)<br/>
+<strong>Thời gian thực tế kết thúc:</strong> {a_end} (GMT+7)<br/>
+<strong>Mức độ ảnh hưởng:</strong> {impact}</p>
+<p>Quý Khách hàng vui lòng kiểm tra lại các dịch vụ trên hệ thống của Quý Khách.</p>
+""",
+        body_en=f"""
+<p>VNG Cloud would like to inform that we have finished the maintenance as follow:</p>
+<p><strong>Service:</strong> {svc}<br/>
+<strong>Description:</strong> {desc}<br/>
+<strong>Type:</strong> {ctype}<br/>
+<strong>Planned Start:</strong> {p_start_en} (GMT+7)<br/>
+<strong>Planned End:</strong> {p_end_en} (GMT+7)<br/>
+<strong>Actual Start:</strong> {a_start_en} (GMT+7)<br/>
+<strong>Actual End:</strong> {a_end_en} (GMT+7)<br/>
+<strong>Expected Impact:</strong> {impact}</p>
+<p>Please re-check all your services.</p>
 """,
     )
 

@@ -126,93 +126,100 @@ def upload_excel():
 
 @app.route("/api/send", methods=["POST"])
 def send_incident():
-    """Validate form → build email → send → log history."""
+    """Validate form -> build email -> send -> log history."""
     data = request.json or {}
+    category = data.get("category", "incident")
+    tt = data.get("template_type", "")
 
-    required = ["template_type", "service_name", "incident_desc",
-                "start_time", "root_cause", "filepath"]
-    missing = [f for f in required if not data.get(f)]
-    if missing:
-        return jsonify({"error": f"Thiếu trường: {', '.join(missing)}"}), 400
-
-    tt = data["template_type"]
-    if tt not in ("1", "2", "3", "4"):
-        return jsonify({"error": "template_type phải là 1–4"}), 400
-    if tt in ("1", "4") and not data.get("end_time"):
-        return jsonify({"error": "end_time bắt buộc với template 1 và 4"}), 400
-    if tt == "3" and not data.get("solution"):
-        return jsonify({"error": "solution bắt buộc với template 3"}), 400
-
-    filepath = data["filepath"]
+    filepath = data.get("filepath", "")
     if not Path(filepath).is_file():
-        return jsonify({"error": f"File không tồn tại: {filepath}"}), 400
+        return jsonify({"error": f"File khong ton tai: {filepath}"}), 400
 
-    # Đọc Excel
+    # Doc Excel
     try:
         df = extract_columns(filepath)
     except Exception as e:
-        return jsonify({"error": f"Lỗi đọc Excel: {e}"}), 422
+        return jsonify({"error": f"Loi doc Excel: {e}"}), 422
 
     if df.empty:
-        return jsonify({"error": "Không có dữ liệu hợp lệ"}), 422
+        return jsonify({"error": "Khong co du lieu hop le"}), 422
 
-    # Xuất filtered Excel
+    # Xuat filtered Excel
     try:
         filtered_path = export_filtered_excel(df, filepath)
     except Exception as e:
-        return jsonify({"error": f"Lỗi xuất Excel: {e}"}), 500
+        return jsonify({"error": f"Loi xuat Excel: {e}"}), 500
 
-    # Lấy Graph token
+    # Lay Gmail token
     try:
         token = get_graph_token()
     except Exception as e:
-        return jsonify({"error": f"Lỗi lấy Microsoft Graph token: {e}"}), 500
+        return jsonify({"error": f"Loi lay Gmail token: {e}"}), 500
 
-    # Build info dict
-    info = {k: data.get(k, "") for k in [
-        "template_type", "service_name", "incident_desc",
-        "start_time", "end_time", "root_cause", "status", "solution"
-    ]}
+    if category == "change":
+        required = ["service_name", "change_desc", "change_type", "planned_start", "planned_end", "impact"]
+        missing = [f for f in required if not data.get(f)]
+        if missing:
+            return jsonify({"error": f"Thieu truong: {', '.join(missing)}"}), 400
+        if tt not in ("5", "6", "7"):
+            return jsonify({"error": "template_type change phai la 5, 6, hoac 7"}), 400
+        info = {k: data.get(k, "") for k in [
+            "template_type", "service_name", "change_desc", "change_type",
+            "planned_start", "planned_end", "impact", "actual_start", "actual_end"
+        ]}
+        log_desc = data.get("change_desc", "")
+        log_time = data.get("planned_start", "")
+        log_end  = data.get("actual_end", "")
+    else:
+        required = ["template_type", "service_name", "incident_desc", "start_time", "root_cause"]
+        missing = [f for f in required if not data.get(f)]
+        if missing:
+            return jsonify({"error": f"Thieu truong: {', '.join(missing)}"}), 400
+        if tt not in ("1", "2", "3", "4"):
+            return jsonify({"error": "template_type phai la 1-4"}), 400
+        if tt in ("1", "4") and not data.get("end_time"):
+            return jsonify({"error": "end_time bat buoc voi template 1 va 4"}), 400
+        if tt == "3" and not data.get("solution"):
+            return jsonify({"error": "solution bat buoc voi template 3"}), 400
+        info = {k: data.get(k, "") for k in [
+            "template_type", "service_name", "incident_desc",
+            "start_time", "end_time", "root_cause", "status", "solution"
+        ]}
+        log_desc = data.get("incident_desc", "")
+        log_time = data.get("start_time", "")
+        log_end  = data.get("end_time", "")
 
-    # Gửi email
+    # Gui email
     results = []
     for owned_by_email, group in df.groupby("Owned By"):
         devices = group.to_dict("records")
         cc_list = sorted(group["Salesman Email"].dropna().unique().tolist())
+        if "support@vngcloud.vn" not in [e.lower() for e in cc_list]:
+            cc_list.append("support@vngcloud.vn")
         try:
             subject, html_body = build_email_html(info, devices)
             ok = send_email(token, owned_by_email, subject, html_body, cc_emails=cc_list)
-            results.append({
-                "to":      owned_by_email,
-                "cc":      cc_list,
-                "count":   len(devices),
-                "sent":    ok,
-            })
+            results.append({"to": owned_by_email, "cc": cc_list, "count": len(devices), "sent": ok})
         except Exception as e:
-            results.append({
-                "to":    owned_by_email,
-                "cc":    cc_list,
-                "count": len(devices),
-                "sent":  False,
-                "error": str(e),
-            })
+            results.append({"to": owned_by_email, "cc": cc_list, "count": len(devices), "sent": False, "error": str(e)})
 
     sent_count = sum(1 for r in results if r["sent"])
     total      = len(results)
 
-    # Lưu lịch sử
+    # Luu lich su
     log_entry = {
-        "id":          uuid.uuid4().hex[:8],
-        "timestamp":   datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
-        "template":    tt,
-        "service":     data["service_name"],
-        "incident":    data["incident_desc"],
-        "start_time":  data["start_time"],
-        "end_time":    data.get("end_time", ""),
-        "sent":        sent_count,
-        "total":       total,
-        "mail_mode":   MAIL_MODE,
-        "results":     results,
+        "id":        uuid.uuid4().hex[:8],
+        "timestamp": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+        "category":  category,
+        "template":  tt,
+        "service":   data.get("service_name", ""),
+        "incident":  log_desc,
+        "start_time": log_time,
+        "end_time":   log_end,
+        "sent":       sent_count,
+        "total":      total,
+        "mail_mode":  MAIL_MODE,
+        "results":    results,
     }
     save_history(log_entry)
 
