@@ -313,6 +313,23 @@ textarea { resize: vertical; min-height: 80px; }
 
 .t-label { font-size: 12px; line-height: 1.4; }
 
+/* Category tabs (Incident / Change) */
+.cat-tab {
+  padding: 10px 24px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  user-select: none;
+}
+.cat-tab:hover { color: var(--text); }
+.cat-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
 /* Conditional fields */
 .conditional { display: none; }
 .conditional.show { display: contents; }
@@ -632,7 +649,7 @@ table.devices-table tr:hover td { background: rgba(0,194,255,0.03); }
   <div class="logo">
     <span class="logo-badge">VNG CLOUD</span>
     <div>
-      <div class="logo-title">INCIDENT NOTIFICATION AGENT</div>
+      <div class="logo-title">VNG CLOUD NOTIFICATION AGENT</div>
       <div class="logo-sub">EMAIL DISPATCH SYSTEM · v2.0</div>
     </div>
   </div>
@@ -692,66 +709,130 @@ table.devices-table tr:hover td { background: rgba(0,194,255,0.03); }
   <div class="card" id="formCard" style="display:none">
     <div class="card-header">
       <span class="card-num">03</span>
-      <span class="card-title">Thông tin sự cố</span>
+      <span class="card-title">Thông tin thông báo</span>
     </div>
     <div class="card-body">
 
-      <!-- Template selector -->
-      <div class="form-group full" style="margin-bottom:24px">
-        <label>Loại thông báo <span class="req">*</span></label>
-        <div class="template-grid">
-          <div class="template-btn" onclick="selectTemplate('1', this)">
-            <div class="t-num">01</div>
-            <div class="t-label">Sự cố xử lý nhanh<br/><span style="color:var(--text3);font-size:11px">≤ 20 phút</span></div>
+      <!-- Category tabs: Incident / Change -->
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:24px">
+        <div class="cat-tab active" id="cattab-incident" onclick="switchCategory('incident')">⚡ INCIDENT</div>
+        <div class="cat-tab" id="cattab-change" onclick="switchCategory('change')">🔧 CHANGE</div>
+      </div>
+
+      <!-- ── INCIDENT FORM ── -->
+      <div id="cat-incident">
+        <div class="form-group full" style="margin-bottom:24px">
+          <label>Loại thông báo <span class="req">*</span></label>
+          <div class="template-grid">
+            <div class="template-btn" onclick="selectTemplate('1', this)">
+              <div class="t-num">01</div>
+              <div class="t-label">Xử lý nhanh<br/><span style="color:var(--text3);font-size:11px">≤ 20 phút</span></div>
+            </div>
+            <div class="template-btn" onclick="selectTemplate('2', this)">
+              <div class="t-num">02</div>
+              <div class="t-label">Xử lý kéo dài<br/><span style="color:var(--text3);font-size:11px">> 20 phút</span></div>
+            </div>
+            <div class="template-btn" onclick="selectTemplate('3', this)">
+              <div class="t-num">03</div>
+              <div class="t-label">Cập nhật tiến độ<br/><span style="color:var(--text3);font-size:11px">In progress</span></div>
+            </div>
+            <div class="template-btn selected" onclick="selectTemplate('4', this)">
+              <div class="t-num">04</div>
+              <div class="t-label">Hoàn tất xử lý<br/><span style="color:var(--text3);font-size:11px">Resolved</span></div>
+            </div>
           </div>
-          <div class="template-btn" onclick="selectTemplate('2', this)">
-            <div class="t-num">02</div>
-            <div class="t-label">Xử lý kéo dài<br/><span style="color:var(--text3);font-size:11px">> 20 phút</span></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Tên dịch vụ / hệ thống <span class="req">*</span></label>
+            <input type="text" id="service_name" placeholder="Ví dụ: vServer HCM1, VKS, vStorage"/>
           </div>
-          <div class="template-btn" onclick="selectTemplate('3', this)">
-            <div class="t-num">03</div>
-            <div class="t-label">Cập nhật tiến độ<br/><span style="color:var(--text3);font-size:11px">In progress</span></div>
+          <div class="form-group full">
+            <label>Mô tả sự cố <span class="req">*</span></label>
+            <input type="text" id="incident_desc" value="một số khách hàng mất kết nối dịch vụ" placeholder="Mô tả ngắn gọn về sự cố"/>
           </div>
-          <div class="template-btn selected" onclick="selectTemplate('4', this)">
-            <div class="t-num">04</div>
-            <div class="t-label">Hoàn tất xử lý<br/><span style="color:var(--text3);font-size:11px">Resolved</span></div>
+          <div class="form-group">
+            <label>Thời gian bắt đầu <span class="req">*</span></label>
+            <input type="text" id="start_time" placeholder="DD-MM-YYYY HH:MM"/>
+          </div>
+          <div class="conditional" id="field_end_time">
+            <div class="form-group">
+              <label>Thời gian kết thúc <span class="req">*</span></label>
+              <input type="text" id="end_time" placeholder="DD-MM-YYYY HH:MM"/>
+            </div>
+          </div>
+          <div class="form-group full">
+            <label>Nguyên nhân <span class="req">*</span></label>
+            <textarea id="root_cause" placeholder="Mô tả nguyên nhân sự cố..."></textarea>
+          </div>
+          <div class="conditional full" id="field_status">
+            <div class="form-group">
+              <label>Tình trạng xử lý</label>
+              <input type="text" id="status_field" value="VNG Cloud đang tập trung nguồn lực để khắc phục và sẽ thông báo ngay khi dịch vụ hoạt động trở lại"/>
+            </div>
+          </div>
+          <div class="conditional full" id="field_solution">
+            <div class="form-group">
+              <label>Hướng xử lý / giải pháp <span class="req">*</span></label>
+              <textarea id="solution" placeholder="Mô tả hướng xử lý..."></textarea>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="form-grid">
-        <div class="form-group full">
-          <label>Tên dịch vụ / hệ thống <span class="req">*</span></label>
-          <input type="text" id="service_name" placeholder="Ví dụ: vServer HCM1, VKS, vStorage"/>
-        </div>
-        <div class="form-group full">
-          <label>Mô tả sự cố <span class="req">*</span></label>
-          <input type="text" id="incident_desc" value="một số khách hàng mất kết nối dịch vụ" placeholder="Mô tả ngắn gọn về sự cố"/>
-        </div>
-        <div class="form-group">
-          <label>Thời gian bắt đầu <span class="req">*</span></label>
-          <input type="text" id="start_time" placeholder="DD-MM-YYYY HH:MM"/>
-        </div>
-        <div class="conditional" id="field_end_time">
-          <div class="form-group">
-            <label>Thời gian kết thúc <span class="req">*</span></label>
-            <input type="text" id="end_time" placeholder="DD-MM-YYYY HH:MM"/>
+      <!-- ── CHANGE FORM ── -->
+      <div id="cat-change" style="display:none">
+        <div class="form-group full" style="margin-bottom:24px">
+          <label>Loại thông báo <span class="req">*</span></label>
+          <div class="template-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div class="template-btn change-btn selected" onclick="selectChangeTemplate('5', this)">
+              <div class="t-num">01</div>
+              <div class="t-label">Gửi mail bảo trì<br/><span style="color:var(--text3);font-size:11px">Maintenance</span></div>
+            </div>
+            <div class="template-btn change-btn" onclick="selectChangeTemplate('6', this)">
+              <div class="t-num">02</div>
+              <div class="t-label">Bảo trì thay đổi<br/><span style="color:var(--text3);font-size:11px">Update</span></div>
+            </div>
+            <div class="template-btn change-btn" onclick="selectChangeTemplate('7', this)">
+              <div class="t-num">03</div>
+              <div class="t-label">Hoàn tất bảo trì<br/><span style="color:var(--text3);font-size:11px">Completed</span></div>
+            </div>
           </div>
         </div>
-        <div class="form-group full">
-          <label>Nguyên nhân <span class="req">*</span></label>
-          <textarea id="root_cause" placeholder="Mô tả nguyên nhân sự cố..."></textarea>
-        </div>
-        <div class="conditional full" id="field_status">
-          <div class="form-group">
-            <label>Tình trạng xử lý</label>
-            <input type="text" id="status_field" value="VNG Cloud đang tập trung nguồn lực để khắc phục và sẽ thông báo ngay khi dịch vụ hoạt động trở lại"/>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Tên dịch vụ <span class="req">*</span></label>
+            <input type="text" id="c_service_name" placeholder="Ví dụ: vServer HCM1, VKS"/>
           </div>
-        </div>
-        <div class="conditional full" id="field_solution">
+          <div class="form-group full">
+            <label>Mô tả bảo trì <span class="req">*</span></label>
+            <input type="text" id="c_change_desc" placeholder="Mô tả nội dung bảo trì"/>
+          </div>
+          <div class="form-group full">
+            <label>Loại bảo trì <span class="req">*</span></label>
+            <input type="text" id="c_change_type" placeholder="Ví dụ: Planned Maintenance, Emergency Maintenance"/>
+          </div>
           <div class="form-group">
-            <label>Hướng xử lý / giải pháp <span class="req">*</span></label>
-            <textarea id="solution" placeholder="Mô tả hướng xử lý..."></textarea>
+            <label>Thời gian dự kiến bắt đầu <span class="req">*</span></label>
+            <input type="text" id="c_planned_start" placeholder="DD-MM-YYYY HH:MM"/>
+          </div>
+          <div class="form-group">
+            <label>Thời gian dự kiến kết thúc <span class="req">*</span></label>
+            <input type="text" id="c_planned_end" placeholder="DD-MM-YYYY HH:MM"/>
+          </div>
+          <div class="form-group full">
+            <label>Mức độ ảnh hưởng <span class="req">*</span></label>
+            <input type="text" id="c_impact" placeholder="Ví dụ: Dịch vụ có thể bị gián đoạn trong 30 phút"/>
+          </div>
+          <div class="conditional full" id="c_field_actual" style="display:contents">
+            <div class="form-group">
+              <label>Thời gian thực tế bắt đầu</label>
+              <input type="text" id="c_actual_start" placeholder="DD-MM-YYYY HH:MM"/>
+            </div>
+            <div class="form-group">
+              <label>Thời gian thực tế kết thúc</label>
+              <input type="text" id="c_actual_end" placeholder="DD-MM-YYYY HH:MM"/>
+            </div>
           </div>
         </div>
       </div>
@@ -802,6 +883,8 @@ let state = {
   filepath: null,
   fileId: null,
   template: '4',
+  category: 'incident',
+  changeTemplate: '5',
 };
 
 // ── Clock ─────────────────────────────────────────────────────────────────
@@ -936,9 +1019,26 @@ function toggleGroup(i) {
 }
 
 // ── Template selector ─────────────────────────────────────────────────────
+function switchCategory(cat) {
+  state.category = cat;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('cattab-' + cat).classList.add('active');
+  document.getElementById('cat-incident').style.display = cat === 'incident' ? '' : 'none';
+  document.getElementById('cat-change').style.display = cat === 'change' ? '' : 'none';
+}
+
+function selectChangeTemplate(t, btn) {
+  state.changeTemplate = t;
+  document.querySelectorAll('.change-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  // show actual times only for template 7 (completed)
+  const actualField = document.getElementById('c_field_actual');
+  actualField.style.display = (t === '7') ? 'contents' : 'none';
+}
+
 function selectTemplate(t, btn) {
   state.template = t;
-  document.querySelectorAll('.template-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.template-btn:not(.change-btn)').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   updateConditionalFields();
 
@@ -978,28 +1078,51 @@ async function sendEmail() {
 
   const get = id => document.getElementById(id)?.value?.trim() || '';
 
-  const payload = {
-    filepath:      state.filepath,
-    template_type: state.template,
-    service_name:  get('service_name'),
-    incident_desc: get('incident_desc'),
-    start_time:    get('start_time'),
-    end_time:      get('end_time'),
-    root_cause:    get('root_cause'),
-    status:        get('status_field'),
-    solution:      get('solution'),
-  };
+  let payload;
 
-  // Basic validation
-  if (!payload.service_name)  { toast('⚠ Thiếu tên dịch vụ'); return; }
-  if (!payload.incident_desc) { toast('⚠ Thiếu mô tả sự cố'); return; }
-  if (!payload.start_time)    { toast('⚠ Thiếu thời gian bắt đầu'); return; }
-  if (!payload.root_cause)    { toast('⚠ Thiếu nguyên nhân'); return; }
-  if ((state.template === '1' || state.template === '4') && !payload.end_time) {
-    toast('⚠ Thiếu thời gian kết thúc'); return;
-  }
-  if (state.template === '3' && !payload.solution) {
-    toast('⚠ Thiếu hướng xử lý / giải pháp'); return;
+  if (state.category === 'change') {
+    payload = {
+      filepath:       state.filepath,
+      category:       'change',
+      template_type:  state.changeTemplate,
+      service_name:   get('c_service_name'),
+      change_desc:    get('c_change_desc'),
+      change_type:    get('c_change_type'),
+      planned_start:  get('c_planned_start'),
+      planned_end:    get('c_planned_end'),
+      impact:         get('c_impact'),
+      actual_start:   get('c_actual_start'),
+      actual_end:     get('c_actual_end'),
+    };
+    if (!payload.service_name)  { toast('⚠ Thiếu tên dịch vụ'); return; }
+    if (!payload.change_desc)   { toast('⚠ Thiếu mô tả bảo trì'); return; }
+    if (!payload.change_type)   { toast('⚠ Thiếu loại bảo trì'); return; }
+    if (!payload.planned_start) { toast('⚠ Thiếu thời gian dự kiến bắt đầu'); return; }
+    if (!payload.planned_end)   { toast('⚠ Thiếu thời gian dự kiến kết thúc'); return; }
+    if (!payload.impact)        { toast('⚠ Thiếu mức độ ảnh hưởng'); return; }
+  } else {
+    payload = {
+      filepath:      state.filepath,
+      category:      'incident',
+      template_type: state.template,
+      service_name:  get('service_name'),
+      incident_desc: get('incident_desc'),
+      start_time:    get('start_time'),
+      end_time:      get('end_time'),
+      root_cause:    get('root_cause'),
+      status:        get('status_field'),
+      solution:      get('solution'),
+    };
+    if (!payload.service_name)  { toast('⚠ Thiếu tên dịch vụ'); return; }
+    if (!payload.incident_desc) { toast('⚠ Thiếu mô tả sự cố'); return; }
+    if (!payload.start_time)    { toast('⚠ Thiếu thời gian bắt đầu'); return; }
+    if (!payload.root_cause)    { toast('⚠ Thiếu nguyên nhân'); return; }
+    if ((state.template === '1' || state.template === '4') && !payload.end_time) {
+      toast('⚠ Thiếu thời gian kết thúc'); return;
+    }
+    if (state.template === '3' && !payload.solution) {
+      toast('⚠ Thiếu hướng xử lý / giải pháp'); return;
+    }
   }
 
   const btn = document.getElementById('sendBtn');
@@ -1064,25 +1187,39 @@ function renderResult(data) {
 function resetAll() {
   state.filepath = null;
   state.fileId = null;
+  state.category = 'incident';
+  state.template = '4';
+  state.changeTemplate = '5';
   document.getElementById('fileInput').value = '';
   document.getElementById('uploadStatus').style.display = 'none';
   document.getElementById('previewCard').style.display = 'none';
   document.getElementById('formCard').style.display = 'none';
   document.getElementById('resultSection').style.display = 'none';
+  // reset incident fields
   document.getElementById('service_name').value = '';
   document.getElementById('incident_desc').value = 'một số khách hàng mất kết nối dịch vụ';
   document.getElementById('start_time').value = '';
   document.getElementById('end_time').value = '';
   document.getElementById('root_cause').value = '';
+  // reset change fields
+  ['c_service_name','c_change_desc','c_change_type','c_planned_start','c_planned_end','c_impact','c_actual_start','c_actual_end'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  // reset category tabs
+  switchCategory('incident');
   toast('✓ Đã reset');
 }
 
 // ── History ───────────────────────────────────────────────────────────────
 const TEMPLATE_NAMES = {
-  '1': 'NHANH',
-  '2': 'KÉO DÀI',
-  '3': 'CẬP NHẬT',
-  '4': 'HOÀN TẤT',
+  '1': 'INC NHANH',
+  '2': 'INC KÉO DÀI',
+  '3': 'INC CẬP NHẬT',
+  '4': 'INC HOÀN TẤT',
+  '5': 'CHG BẢO TRÌ',
+  '6': 'CHG THAY ĐỔI',
+  '7': 'CHG HOÀN TẤT',
 };
 
 async function loadHistory() {
