@@ -116,13 +116,13 @@ def collect_incident_info() -> dict:
     else:
         info["root_cause"] = prompt(
             "Nguyên nhân",
-            default="Các kỹ sư của VNG Cloud đang kiểm tra để xác định nguyên nhân chính xác"
+            default="Các kỹ sư của GreenNode đang kiểm tra để xác định nguyên nhân chính xác"
         )
 
     if template_type == "2":
         info["status"] = prompt(
             "Tình trạng xử lý",
-            default="VNG Cloud đang tập trung nguồn lực để khắc phục và sẽ thông báo ngay khi dịch vụ hoạt động trở lại"
+            default="GreenNode đang tập trung nguồn lực để khắc phục và sẽ thông báo ngay khi dịch vụ hoạt động trở lại"
         )
 
     if template_type == "3":
@@ -244,28 +244,36 @@ def build_email_html(info: dict, devices: list[dict]) -> tuple[str, str]:
         + vm_table
     )
 
+    SIGNATURE = """<p>Thanks &amp; Best Regards,</p>
+<p><strong>SUPPORT TEAM</strong><br/>
+A (VN): Z06 Street No. 13, Tan Thuan Ward, Ho Chi Minh City, Vietnam<br/>
+A (SG): 9 Raffles Place, #08-03 Republic Plaza, Singapore<br/>
+E: <a href="mailto:support@greennode.ai">support@greennode.ai</a>
+&nbsp;|&nbsp; W: <a href="https://greennode.ai">https://greennode.ai</a><br/>
+H: <strong>1900 1549</strong> (Vietnam) - <strong>065 67729883</strong> (Singapore)</p>"""
+
     def wrap(subject_vn: str, subject_en: str, body_vn: str, body_en: str) -> tuple[str, str]:
-        subject = f"English below|[VNG Cloud][Thông báo] {subject_vn}"
+        subject = f"English below|[GreenNode][Thông báo] {subject_vn}"
         html = f"""
-<html><body style="font-family:Arial,sans-serif;font-size:14px;color:#222;line-height:1.6">
+<html><body style="font-family:Arial,sans-serif;font-size:14px;color:#222;line-height:1.6;max-width:800px">
 
 <p>Kính gửi Quý Khách hàng,</p>
 {body_vn}
-{vm_note}
 <p>Quý Khách hàng vui lòng kiểm tra lại các dịch vụ trên hệ thống của Quý Khách.
 Nếu có thắc mắc hoặc cần hỗ trợ thêm, vui lòng liên hệ bộ phận hỗ trợ Khách hàng qua hotline
-<strong>1900 1549</strong> hoặc email <a href="mailto:support@vngcloud.vn">support@vngcloud.vn</a>.</p>
+<strong>1900 1549</strong> hoặc email <a href="mailto:support@greennode.ai">support@greennode.ai</a>.</p>
 <p>Trân trọng cảm ơn!</p>
 
 <hr/>
 
-<p><strong>[VNG Cloud][Notification] {subject_en}</strong></p>
+<p><strong>[GreenNode][Notification] {subject_en}</strong></p>
 <p>Dear Valued Customer,</p>
 {body_en}
 {vm_note}
 <p>Please re-check all your services. If you need support, please contact our support team
-via hotline <strong>19001549</strong> or email <a href="mailto:support@vngcloud.vn">support@vngcloud.vn</a>.</p>
-<p>Thanks &amp; Best Regards,<br/>Support Team</p>
+via hotline <strong>19001549</strong> or email
+<a href="mailto:support@greennode.ai">support@greennode.ai</a>.</p>
+{SIGNATURE}
 </body></html>
 """
         return subject, html
@@ -278,21 +286,21 @@ via hotline <strong>19001549</strong> or email <a href="mailto:support@vngcloud.
             subject_vn=f"SỰ CỐ {svc.upper()} NGÀY {date_label}",
             subject_en=f"INCIDENT OF {svc.upper()} ON {_fmt_date_en(date_label)}",
             body_vn=f"""
-<p>VNG Cloud đã hoàn tất việc khắc phục sự cố <strong>{inc}</strong>
+<p>GreenNode đã hoàn tất việc khắc phục sự cố <strong>{inc}</strong>
 gây ảnh hưởng đến dịch vụ <strong>{svc}</strong>.</p>
 <p><strong>Thời gian bắt đầu:</strong> {t0} (GMT+7)<br/>
 <strong>Thời gian kết thúc:</strong> {t1} (GMT+7)<br/>
 <strong>Nguyên nhân:</strong> {rc}</p>
-<p><strong>{svc}</strong> của VNG Cloud đã hoạt động trở lại bình thường.</p>
-<p>VNG Cloud xin phép thông báo để Quý Khách hàng nắm thông tin và an tâm tiếp tục sử dụng dịch vụ.</p>
+<p><strong>{svc}</strong> của GreenNode đã hoạt động trở lại bình thường.</p>
+<p>GreenNode xin phép thông báo để Quý Khách hàng nắm thông tin và an tâm tiếp tục sử dụng dịch vụ.</p>
 """,
             body_en=f"""
-<p>VNG Cloud has finished resolving an incident <strong>{inc}</strong>
+<p>GreenNode has finished resolving an incident <strong>{inc}</strong>
 impacted to <strong>{svc}</strong>.</p>
 <p><strong>Outage Start:</strong> {t0_en} (GMT+7)<br/>
 <strong>Outage End:</strong> {t1_en} (GMT+7)<br/>
 <strong>Root cause:</strong> {rc_en}</p>
-<p>Please be informed that <strong>{svc}</strong> on VNG Cloud's infrastructure system has been recovered.</p>
+<p>Please be informed that <strong>{svc}</strong> on GreenNode's infrastructure system has been recovered.</p>
 """,
         )
 
@@ -303,23 +311,23 @@ impacted to <strong>{svc}</strong>.</p>
             subject_vn=f"SỰ CỐ {svc.upper()} NGÀY {date_label}",
             subject_en=f"INCIDENT OF {svc.upper()} ON {_fmt_date_en(date_label)}",
             body_vn=f"""
-<p>Hiện tại VNG Cloud đang gặp sự cố sau đây:</p>
+<p>Hiện tại GreenNode đang gặp sự cố sau đây:</p>
 <p><strong>Tên sự cố:</strong> {inc}<br/>
 <strong>Dịch vụ ảnh hưởng:</strong> {svc}<br/>
 <strong>Thời gian bắt đầu:</strong> {t0} (GMT+7)<br/>
 <strong>Nguyên nhân:</strong> {rc}<br/>
 <strong>Tình trạng xử lý:</strong> {status}</p>
-<p>VNG Cloud chân thành xin lỗi Quý Khách hàng vì sự bất tiện này.
-Vui lòng theo dõi các email thông báo từ VNG Cloud về tình hình dịch vụ.</p>
+<p>GreenNode chân thành xin lỗi Quý Khách hàng vì sự bất tiện này.
+Vui lòng theo dõi các email thông báo từ GreenNode về tình hình dịch vụ.</p>
 """,
             body_en=f"""
-<p>At present, VNG Cloud has occurred an incident as followings:</p>
+<p>At present, GreenNode has occurred an incident as followings:</p>
 <p><strong>Incident:</strong> {inc}<br/>
 <strong>Impact Service:</strong> {svc}<br/>
 <strong>Outage Start:</strong> {t0_en} (GMT+7)<br/>
 <strong>Root Cause:</strong> {rc_en}<br/>
 <strong>Status:</strong> {status}</p>
-<p>We do apologize to you for this inconvenience. Please follow up on the next emails from VNG Cloud.</p>
+<p>We do apologize to you for this inconvenience. Please follow up on the next emails from GreenNode.</p>
 """,
         )
 
@@ -335,9 +343,9 @@ Vui lòng theo dõi các email thông báo từ VNG Cloud về tình hình dịc
 <p><strong>Thời gian bắt đầu:</strong> {t0} (GMT+7)<br/>
 <strong>Nguyên nhân:</strong> {rc}<br/>
 <strong>Hướng xử lý:</strong> {solution}</p>
-<p>VNG Cloud đang tập trung nguồn lực để khắc phục và sẽ thông báo đến Quý Khách hàng
+<p>GreenNode đang tập trung nguồn lực để khắc phục và sẽ thông báo đến Quý Khách hàng
 ngay khi dịch vụ hoạt động trở lại bình thường.</p>
-<p>VNG Cloud chân thành xin lỗi Quý Khách hàng vì sự bất tiện này.</p>
+<p>GreenNode chân thành xin lỗi Quý Khách hàng vì sự bất tiện này.</p>
 """,
             body_en=f"""
 <p>At present, incident of <strong>{inc}</strong> impacted to <strong>{svc}</strong> is under processed.</p>
@@ -345,7 +353,7 @@ ngay khi dịch vụ hoạt động trở lại bình thường.</p>
 <strong>Root cause:</strong> {rc_en}<br/>
 <strong>Solution:</strong> {solution}</p>
 <p>We are focusing on resolving the incident and will keep you updated as soon as possible.</p>
-<p>We do apologize to you for this inconvenience. Please follow up on the next emails from VNG Cloud.</p>
+<p>We do apologize to you for this inconvenience. Please follow up on the next emails from GreenNode.</p>
 """,
         )
 
@@ -357,21 +365,21 @@ ngay khi dịch vụ hoạt động trở lại bình thường.</p>
             subject_vn=f"HOÀN TẤT XỬ LÝ SỰ CỐ {svc.upper()} NGÀY {date_label}",
             subject_en=f"INCIDENT RESOLVED {svc.upper()} ON {_fmt_date_en(date_label)}",
             body_vn=f"""
-<p>VNG Cloud đã hoàn tất việc khắc phục sự cố <strong>{inc}</strong>
+<p>GreenNode đã hoàn tất việc khắc phục sự cố <strong>{inc}</strong>
 gây ảnh hưởng đến dịch vụ <strong>{svc}</strong>.</p>
 <p><strong>Thời gian bắt đầu:</strong> {t0} (GMT+7)<br/>
 <strong>Thời gian kết thúc:</strong> {t1} (GMT+7)<br/>
 <strong>Nguyên nhân:</strong> {rc}</p>
-<p><strong>{svc}</strong> của VNG Cloud đã hoạt động trở lại bình thường.</p>
-<p>VNG Cloud xin phép thông báo để Quý Khách hàng nắm thông tin và an tâm tiếp tục sử dụng dịch vụ.</p>
+<p><strong>{svc}</strong> của GreenNode đã hoạt động trở lại bình thường.</p>
+<p>GreenNode xin phép thông báo để Quý Khách hàng nắm thông tin và an tâm tiếp tục sử dụng dịch vụ.</p>
 """,
             body_en=f"""
-<p>VNG Cloud has finished resolving an incident <strong>{inc}</strong>
+<p>GreenNode has finished resolving an incident <strong>{inc}</strong>
 impacted to <strong>{svc}</strong>.</p>
 <p><strong>Outage Start:</strong> {t0_en} (GMT+7)<br/>
 <strong>Outage End:</strong> {t1_en} (GMT+7)<br/>
 <strong>Root cause:</strong> {rc_en}</p>
-<p>Please be informed that <strong>{svc}</strong> on VNG Cloud's infrastructure system has been recovered.</p>
+<p>Please be informed that <strong>{svc}</strong> on GreenNode's infrastructure system has been recovered.</p>
 """,
         )
 
@@ -392,25 +400,24 @@ impacted to <strong>{svc}</strong>.</p>
     a_end_en     = _fmt_date_en(a_end)
 
     def wrap_change(subject_vn, subject_en, body_vn, body_en):
-        subject = f"English below|[VNG Cloud][Thông báo] {subject_vn}"
+        subject = f"English below|[GreenNode][Thông báo] {subject_vn}"
         html = f"""
-<html><body style="font-family:Arial,sans-serif;font-size:14px;color:#222;line-height:1.6">
+<html><body style="font-family:Arial,sans-serif;font-size:14px;color:#222;line-height:1.6;max-width:800px">
 <p>Kính gửi Quý Khách hàng,</p>
 {body_vn}
-{vm_note}
 <p>Quý Khách hàng vui lòng nắm thông tin và sắp xếp kế hoạch phù hợp.
 Nếu cần hỗ trợ, xin liên hệ bộ phận hỗ trợ Khách hàng qua hotline
-<strong>1900 1549</strong> hoặc email <a href="mailto:support@vngcloud.vn">support@vngcloud.vn</a>.</p>
+<strong>1900 1549</strong> hoặc email <a href="mailto:support@greennode.ai">support@greennode.ai</a>.</p>
 <p>Trân trọng cảm ơn!</p>
 <hr/>
-<p><strong>[VNG Cloud][Notification] {subject_en}</strong></p>
+<p><strong>[GreenNode][Notification] {subject_en}</strong></p>
 <p>Dear Valued Customer,</p>
 {body_en}
 {vm_note}
 <p>Please be noted for your schedule.
 If you need support, please contact our support team via hotline
-<strong>19001549</strong> or email <a href="mailto:support@vngcloud.vn">support@vngcloud.vn</a>.</p>
-<p>Thanks &amp; Best Regards,<br/>Support Team</p>
+<strong>19001549</strong> or email <a href="mailto:support@greennode.ai">support@greennode.ai</a>.</p>
+{SIGNATURE}
 </body></html>
 """
         return subject, html
@@ -421,7 +428,7 @@ If you need support, please contact our support team via hotline
             subject_vn=f"KẾ HOẠCH BẢO TRÌ {svc.upper()} NGÀY {date_label}",
             subject_en=f"MAINTENANCE SCHEDULE {svc.upper()} ON {_fmt_date_en(date_label)}",
             body_vn=f"""
-<p>VNG Cloud xin thông báo kế hoạch bảo trì hệ thống như sau:</p>
+<p>GreenNode xin thông báo kế hoạch bảo trì hệ thống như sau:</p>
 <p><strong>Dịch vụ:</strong> {svc}<br/>
 <strong>Mô tả:</strong> {desc}<br/>
 <strong>Loại:</strong> {ctype}<br/>
@@ -430,7 +437,7 @@ If you need support, please contact our support team via hotline
 <strong>Mức độ ảnh hưởng:</strong> {impact}</p>
 """,
             body_en=f"""
-<p>VNG Cloud would like to inform a maintenance plan as followings:</p>
+<p>GreenNode would like to inform a maintenance plan as followings:</p>
 <p><strong>Service:</strong> {svc}<br/>
 <strong>Description:</strong> {desc}<br/>
 <strong>Type:</strong> {ctype}<br/>
@@ -446,7 +453,7 @@ If you need support, please contact our support team via hotline
             subject_vn=f"CẬP NHẬT KẾ HOẠCH BẢO TRÌ {svc.upper()} NGÀY {date_label}",
             subject_en=f"MAINTENANCE SCHEDULE UPDATE {svc.upper()} ON {_fmt_date_en(date_label)}",
             body_vn=f"""
-<p>VNG Cloud xin thông báo kế hoạch bảo trì hệ thống được cập nhật như sau:</p>
+<p>GreenNode xin thông báo kế hoạch bảo trì hệ thống được cập nhật như sau:</p>
 <p><strong>Dịch vụ:</strong> {svc}<br/>
 <strong>Mô tả:</strong> {desc}<br/>
 <strong>Loại:</strong> {ctype}<br/>
@@ -456,7 +463,7 @@ If you need support, please contact our support team via hotline
 <p>Chúng tôi thành thật xin lỗi vì các bất tiện (nếu có) trong quá trình bảo trì.</p>
 """,
             body_en=f"""
-<p>VNG Cloud would like to update a maintenance schedule as followings:</p>
+<p>GreenNode would like to update a maintenance schedule as followings:</p>
 <p><strong>Service:</strong> {svc}<br/>
 <strong>Description:</strong> {desc}<br/>
 <strong>Type:</strong> {ctype}<br/>
@@ -472,7 +479,7 @@ If you need support, please contact our support team via hotline
         subject_vn=f"HOÀN TẤT BẢO TRÌ {svc.upper()} NGÀY {date_label}",
         subject_en=f"MAINTENANCE COMPLETED {svc.upper()} ON {_fmt_date_en(date_label)}",
         body_vn=f"""
-<p>VNG Cloud xin thông báo hoàn tất bảo trì hệ thống như sau:</p>
+<p>GreenNode xin thông báo hoàn tất bảo trì hệ thống như sau:</p>
 <p><strong>Dịch vụ:</strong> {svc}<br/>
 <strong>Mô tả:</strong> {desc}<br/>
 <strong>Loại:</strong> {ctype}<br/>
@@ -484,7 +491,7 @@ If you need support, please contact our support team via hotline
 <p>Quý Khách hàng vui lòng kiểm tra lại các dịch vụ trên hệ thống của Quý Khách.</p>
 """,
         body_en=f"""
-<p>VNG Cloud would like to inform that we have finished the maintenance as follow:</p>
+<p>GreenNode would like to inform that we have finished the maintenance as follow:</p>
 <p><strong>Service:</strong> {svc}<br/>
 <strong>Description:</strong> {desc}<br/>
 <strong>Type:</strong> {ctype}<br/>
