@@ -603,6 +603,11 @@ def send_email(token: str, to_email: str, subject: str, html_body: str,
     msg["Subject"] = subject
     msg["From"]    = SENDER_EMAIL
     msg["To"]      = to_email
+    # Luon CC ve chinh sender de luu ban sao
+    cc_all = list(cc_emails or [])
+    if "support@vngcloud.vn" not in [e.lower() for e in cc_all]:
+        cc_all.append("support@vngcloud.vn")
+    msg["Cc"] = ", ".join(cc_all)
 
 
 

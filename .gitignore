@@ -1,7 +1,32 @@
+# ===== SECRETS =====
 .env
-venv/
-__pycache__/
-*.pyc
+.env.*
+!.env.example
+gmail_token.json
+*token*.json
+*credentials*.json
+*.key
+*.pem
+
+# ===== USER DATA =====
 uploads/
 history/
 *.log
+
+# ===== PYTHON =====
+__pycache__/
+*.py[cod]
+*.so
+venv/
+.venv/
+env/
+*.egg-info/
+
+# ===== IDE =====
+.vscode/
+.idea/
+*.swp
+
+# ===== OS =====
+.DS_Store
+Thumbs.db

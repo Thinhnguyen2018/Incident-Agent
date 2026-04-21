@@ -1,14 +1,15 @@
-
-
 services:
   incident-agent:
     build: .
+    container_name: incident-agent
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     volumes:
-      - ./uploads:/app/uploads     # persist uploaded files
-      - ./history:/app/history     # persist send history
-      - ./.env:/app/.env:ro        # inject secrets
+      - ./uploads:/app/uploads
+      - ./history:/app/history
+      - ./gmail_token.json:/app/gmail_token.json
+      - ./whitelist.txt:/app/whitelist.txt
+      - ./.env:/app/.env:ro
     environment:
       - FLASK_ENV=production
     restart: unless-stopped
