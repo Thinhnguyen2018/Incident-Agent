@@ -200,8 +200,16 @@ def _fmt_date_en(date_str: str) -> str:
         return date_str  # trả về nguyên nếu không parse được
 
 
-def _vm_table_html(devices: list[dict]) -> str:
-    """Tạo bảng HTML danh sách VM bị ảnh hưởng."""
+def _vm_table_html(devices: list[dict], lang: str = "vn") -> str:
+    """Tạo bảng HTML danh sách VM bị ảnh hưởng.
+
+    lang: "vn" → header tiếng Việt, "en" → header tiếng Anh.
+    """
+    if lang == "en":
+        headers = ("VM Name", "Customer", "IP Address", "Floating IP")
+    else:
+        headers = ("Tên VM", "Khách hàng", "IP Address", "Floating IP")
+
     rows = ""
     for d in devices:
         floating = d.get("Floating IP") or "—"
@@ -216,10 +224,10 @@ def _vm_table_html(devices: list[dict]) -> str:
     return (
         "<table style='border-collapse:collapse;font-size:13px;margin:8px 0'>"
         "<thead><tr style='background:#f5f5f5'>"
-        "<th style='padding:4px 8px;border:1px solid #ddd;text-align:left'>Tên VM / VM Name</th>"
-        "<th style='padding:4px 8px;border:1px solid #ddd;text-align:left'>Khách hàng / Customer</th>"
-        "<th style='padding:4px 8px;border:1px solid #ddd;text-align:left'>IP Address</th>"
-        "<th style='padding:4px 8px;border:1px solid #ddd;text-align:left'>Floating IP</th>"
+        f"<th style='padding:4px 8px;border:1px solid #ddd;text-align:left'>{headers[0]}</th>"
+        f"<th style='padding:4px 8px;border:1px solid #ddd;text-align:left'>{headers[1]}</th>"
+        f"<th style='padding:4px 8px;border:1px solid #ddd;text-align:left'>{headers[2]}</th>"
+        f"<th style='padding:4px 8px;border:1px solid #ddd;text-align:left'>{headers[3]}</th>"
         "</tr></thead>"
         f"<tbody>{rows}</tbody></table>"
     )
@@ -237,11 +245,13 @@ def build_email_html(info: dict, devices: list[dict]) -> tuple[str, str]:
 
     date_label = datetime.now().strftime("%d-%m-%Y %H:%M")
 
-    vm_table = _vm_table_html(devices)
-    vm_note  = (
-        "<p>Danh sách dịch vụ/thiết bị của Quý Khách bị ảnh hưởng:<br>"
-        "<i>List of your affected services/devices:</i></p>"
-        + vm_table
+    vm_note_vn = (
+        "<p>Danh sách dịch vụ/thiết bị của Quý Khách bị ảnh hưởng:</p>"
+        + _vm_table_html(devices, lang="vn")
+    )
+    vm_note_en = (
+        "<p><i>List of your affected services/devices:</i></p>"
+        + _vm_table_html(devices, lang="en")
     )
 
     SIGNATURE = """<p>Thanks &amp; Best Regards,</p>
@@ -259,6 +269,7 @@ H: <strong>1900 1549</strong> (Vietnam) - <strong>065 67729883</strong> (Singapo
 
 <p>Kính gửi Quý Khách hàng,</p>
 {body_vn}
+{vm_note_vn}
 <p>Quý Khách hàng vui lòng kiểm tra lại các dịch vụ trên hệ thống của Quý Khách.
 Nếu có thắc mắc hoặc cần hỗ trợ thêm, vui lòng liên hệ bộ phận hỗ trợ Khách hàng qua hotline
 <strong>1900 1549</strong> hoặc email <a href="mailto:support@greennode.ai">support@greennode.ai</a>.</p>
@@ -269,7 +280,7 @@ Nếu có thắc mắc hoặc cần hỗ trợ thêm, vui lòng liên hệ bộ 
 <p><strong>[GreenNode][Notification] {subject_en}</strong></p>
 <p>Dear Valued Customer,</p>
 {body_en}
-{vm_note}
+{vm_note_en}
 <p>Please re-check all your services. If you need support, please contact our support team
 via hotline <strong>19001549</strong> or email
 <a href="mailto:support@greennode.ai">support@greennode.ai</a>.</p>
@@ -405,6 +416,7 @@ impacted to <strong>{svc}</strong>.</p>
 <html><body style="font-family:Arial,sans-serif;font-size:14px;color:#222;line-height:1.6;max-width:800px">
 <p>Kính gửi Quý Khách hàng,</p>
 {body_vn}
+{vm_note_vn}
 <p>Quý Khách hàng vui lòng nắm thông tin và sắp xếp kế hoạch phù hợp.
 Nếu cần hỗ trợ, xin liên hệ bộ phận hỗ trợ Khách hàng qua hotline
 <strong>1900 1549</strong> hoặc email <a href="mailto:support@greennode.ai">support@greennode.ai</a>.</p>
@@ -413,7 +425,7 @@ Nếu cần hỗ trợ, xin liên hệ bộ phận hỗ trợ Khách hàng qua h
 <p><strong>[GreenNode][Notification] {subject_en}</strong></p>
 <p>Dear Valued Customer,</p>
 {body_en}
-{vm_note}
+{vm_note_en}
 <p>Please be noted for your schedule.
 If you need support, please contact our support team via hotline
 <strong>19001549</strong> or email <a href="mailto:support@greennode.ai">support@greennode.ai</a>.</p>
