@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -110,6 +109,127 @@ header {
 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
 
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── User menu ── */
+.user-menu { position: relative; }
+
+.user-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 10px 4px 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.user-btn:hover { border-color: var(--accent); background: rgba(29,205,94,0.04); }
+
+.user-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: none;
+}
+.user-avatar.show { display: block; }
+
+.user-avatar-fallback {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+}
+.user-avatar.show + .user-avatar-fallback { display: none; }
+
+.user-email {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text2);
+  letter-spacing: 0.02em;
+}
+
+.user-caret {
+  font-size: 9px;
+  color: var(--text3);
+  margin-left: 2px;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 240px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  display: none;
+  z-index: 200;
+}
+.user-dropdown.show { display: block; }
+
+.user-dropdown-info {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.user-dropdown-name {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.user-dropdown-email {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+  word-break: break-all;
+}
+
+.user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  color: var(--text);
+  text-decoration: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  transition: background 0.15s;
+}
+.user-dropdown-item:hover {
+  background: rgba(29,205,94,0.06);
+  color: var(--accent);
+}
+
+.user-dropdown-icon {
+  font-size: 14px;
+  color: var(--text2);
+}
+.user-dropdown-item:hover .user-dropdown-icon { color: var(--accent); }
+
+/* Mobile: hide email text to save space */
+@media (max-width: 600px) {
+  .user-email { display: none; }
+  .user-dropdown { min-width: 200px; }
+}
 
 /* ── Tabs ── */
 .tabs {
@@ -273,6 +393,21 @@ input:focus, textarea:focus, select:focus {
 
 select option { background: var(--bg2); }
 textarea { resize: vertical; min-height: 80px; }
+
+/* Date input: hint + invalid state */
+input.date-input.invalid {
+  border-color: var(--red);
+  background: rgba(255,77,106,0.04);
+}
+input.date-input.invalid:focus { border-color: var(--red); }
+.date-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 2px;
+  letter-spacing: 0.03em;
+}
+.date-hint.error { color: var(--red); }
 
 /* Template selector */
 .template-grid {
@@ -657,6 +792,24 @@ table.devices-table tr:hover td { background: rgba(29,205,94,0.03); }
   <div class="header-meta">
     <span><span class="dot"></span> SYSTEM ONLINE</span>
     <span id="clock"></span>
+    <div class="user-menu" id="userMenu" style="display:none">
+      <button class="user-btn" onclick="toggleUserMenu(event)" aria-label="User menu">
+        <img id="userAvatar" class="user-avatar" alt=""/>
+        <span id="userAvatarFallback" class="user-avatar-fallback">?</span>
+        <span id="userEmail" class="user-email"></span>
+        <span class="user-caret">▾</span>
+      </button>
+      <div class="user-dropdown" id="userDropdown">
+        <div class="user-dropdown-info">
+          <div class="user-dropdown-name" id="userFullName"></div>
+          <div class="user-dropdown-email" id="userDropdownEmail"></div>
+        </div>
+        <a class="user-dropdown-item" href="/logout">
+          <span class="user-dropdown-icon">⎋</span>
+          <span>Đăng xuất</span>
+        </a>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -754,12 +907,14 @@ table.devices-table tr:hover td { background: rgba(29,205,94,0.03); }
           </div>
           <div class="form-group">
             <label>Thời gian bắt đầu <span class="req">*</span></label>
-            <input type="text" id="start_time" placeholder="DD-MM-YYYY HH:MM"/>
+            <input type="text" id="start_time" class="date-input" placeholder="22-04-2026 14:30"/>
+            <div class="date-hint">Định dạng: DD-MM-YYYY HH:MM</div>
           </div>
           <div class="conditional" id="field_end_time">
             <div class="form-group">
               <label>Thời gian kết thúc <span class="req">*</span></label>
-              <input type="text" id="end_time" placeholder="DD-MM-YYYY HH:MM"/>
+              <input type="text" id="end_time" class="date-input" placeholder="22-04-2026 15:00"/>
+              <div class="date-hint">Định dạng: DD-MM-YYYY HH:MM</div>
             </div>
           </div>
           <div class="form-group full">
@@ -815,11 +970,13 @@ table.devices-table tr:hover td { background: rgba(29,205,94,0.03); }
           </div>
           <div class="form-group">
             <label>Thời gian dự kiến bắt đầu <span class="req">*</span></label>
-            <input type="text" id="c_planned_start" placeholder="DD-MM-YYYY HH:MM"/>
+            <input type="text" id="c_planned_start" class="date-input" placeholder="22-04-2026 14:30"/>
+            <div class="date-hint">Định dạng: DD-MM-YYYY HH:MM</div>
           </div>
           <div class="form-group">
             <label>Thời gian dự kiến kết thúc <span class="req">*</span></label>
-            <input type="text" id="c_planned_end" placeholder="DD-MM-YYYY HH:MM"/>
+            <input type="text" id="c_planned_end" class="date-input" placeholder="22-04-2026 16:00"/>
+            <div class="date-hint">Định dạng: DD-MM-YYYY HH:MM</div>
           </div>
           <div class="form-group full">
             <label>Mức độ ảnh hưởng <span class="req">*</span></label>
@@ -828,11 +985,13 @@ table.devices-table tr:hover td { background: rgba(29,205,94,0.03); }
           <div class="conditional full" id="c_field_actual" style="display:contents">
             <div class="form-group">
               <label>Thời gian thực tế bắt đầu</label>
-              <input type="text" id="c_actual_start" placeholder="DD-MM-YYYY HH:MM"/>
+              <input type="text" id="c_actual_start" class="date-input" placeholder="22-04-2026 14:30"/>
+              <div class="date-hint">Định dạng: DD-MM-YYYY HH:MM</div>
             </div>
             <div class="form-group">
               <label>Thời gian thực tế kết thúc</label>
-              <input type="text" id="c_actual_end" placeholder="DD-MM-YYYY HH:MM"/>
+              <input type="text" id="c_actual_end" class="date-input" placeholder="22-04-2026 16:00"/>
+              <div class="date-hint">Định dạng: DD-MM-YYYY HH:MM</div>
             </div>
           </div>
         </div>
@@ -888,6 +1047,84 @@ let state = {
   changeTemplate: '5',
 };
 
+// ── Date validation (DD-MM-YYYY HH:MM) ────────────────────────────────────
+/**
+ * Validate chuỗi có đúng format DD-MM-YYYY HH:MM và là ngày hợp lệ hay không.
+ * @returns {{ok: boolean, msg: string}} — ok=true nếu hợp lệ hoặc rỗng.
+ */
+function validateDateStr(str) {
+  if (!str || !str.trim()) return { ok: true, msg: '' };  // rỗng thì bỏ qua, việc check required để chỗ khác lo
+  const s = str.trim();
+  // regex: DD-MM-YYYY HH:MM (ngăn cách bằng - và space và :)
+  const m = s.match(/^(\d{2})-(\d{2})-(\d{4}) (\d{2}):(\d{2})$/);
+  if (!m) return { ok: false, msg: 'Sai định dạng. Phải là DD-MM-YYYY HH:MM (vd: 22-04-2026 14:30)' };
+  const [, dd, mm, yyyy, hh, mi] = m.map(Number);
+  if (mm < 1 || mm > 12)  return { ok: false, msg: `Tháng không hợp lệ (${String(mm).padStart(2,'0')})` };
+  if (hh > 23)            return { ok: false, msg: `Giờ không hợp lệ (${String(hh).padStart(2,'0')})` };
+  if (mi > 59)            return { ok: false, msg: `Phút không hợp lệ (${String(mi).padStart(2,'0')})` };
+  // Tính số ngày thực tế của tháng (xử lý năm nhuận tự động qua Date)
+  const daysInMonth = new Date(yyyy, mm, 0).getDate();
+  if (dd < 1 || dd > daysInMonth) {
+    return { ok: false, msg: `Ngày không hợp lệ (tháng ${mm} có ${daysInMonth} ngày)` };
+  }
+  return { ok: true, msg: '' };
+}
+
+/** Apply highlight + thông báo dưới input. Return bool ok. */
+function applyDateValidation(inputEl) {
+  const { ok, msg } = validateDateStr(inputEl.value);
+  const hint = inputEl.parentElement.querySelector('.date-hint');
+  if (ok) {
+    inputEl.classList.remove('invalid');
+    if (hint) {
+      hint.textContent = 'Định dạng: DD-MM-YYYY HH:MM';
+      hint.classList.remove('error');
+    }
+  } else {
+    inputEl.classList.add('invalid');
+    if (hint) {
+      hint.textContent = '✗ ' + msg;
+      hint.classList.add('error');
+    }
+  }
+  return ok;
+}
+
+/** Validate toàn bộ date input đang visible. Return bool (true = hợp lệ hết). */
+function validateAllDates() {
+  const inputs = document.querySelectorAll('input.date-input');
+  let allOk = true;
+  let firstInvalid = null;
+  inputs.forEach(inp => {
+    // Bỏ qua input nằm trong .conditional đang ẩn
+    const hiddenParent = inp.closest('.conditional');
+    if (hiddenParent && !hiddenParent.classList.contains('show')) return;
+    const ok = applyDateValidation(inp);
+    if (!ok && !firstInvalid) firstInvalid = inp;
+    if (!ok) allOk = false;
+  });
+  if (firstInvalid) firstInvalid.focus();
+  return allOk;
+}
+
+// Gắn listener onblur + oninput cho tất cả date input
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('input.date-input').forEach(inp => {
+    inp.addEventListener('blur',  () => applyDateValidation(inp));
+    inp.addEventListener('input', () => {
+      // Khi user gõ lại, gỡ highlight đỏ ngay để đỡ phân tâm — sẽ validate lại lúc blur/submit
+      if (inp.classList.contains('invalid')) {
+        inp.classList.remove('invalid');
+        const hint = inp.parentElement.querySelector('.date-hint');
+        if (hint) {
+          hint.textContent = 'Định dạng: DD-MM-YYYY HH:MM';
+          hint.classList.remove('error');
+        }
+      }
+    });
+  });
+});
+
 // ── Clock ─────────────────────────────────────────────────────────────────
 function updateClock() {
   const now = new Date();
@@ -896,6 +1133,57 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock();
+
+// ── User menu ─────────────────────────────────────────────────────────────
+async function loadCurrentUser() {
+  try {
+    const res = await fetch('/api/me', { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const me = await res.json();
+    const menu = document.getElementById('userMenu');
+    const emailSpan = document.getElementById('userEmail');
+    const avatar = document.getElementById('userAvatar');
+    const fallback = document.getElementById('userAvatarFallback');
+    const fullName = document.getElementById('userFullName');
+    const dropdownEmail = document.getElementById('userDropdownEmail');
+
+    emailSpan.textContent = me.email || '';
+    fullName.textContent = me.name || me.email || '';
+    dropdownEmail.textContent = me.email || '';
+    fallback.textContent = (me.email || '?').charAt(0);
+
+    if (me.picture) {
+      avatar.src = me.picture;
+      avatar.onload  = () => avatar.classList.add('show');
+      avatar.onerror = () => avatar.classList.remove('show');  // rơi về fallback chữ
+    }
+    menu.style.display = '';
+  } catch (e) {
+    // Không cần block UI — route /api/me yêu cầu login, nếu lỗi thì coi như guest
+  }
+}
+
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  document.getElementById('userDropdown').classList.toggle('show');
+}
+
+// Click ngoài menu thì đóng dropdown
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('userDropdown');
+  if (dropdown && dropdown.classList.contains('show')) {
+    if (!e.target.closest('.user-menu')) dropdown.classList.remove('show');
+  }
+});
+
+// Tự động đóng khi bấm Esc
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.getElementById('userDropdown')?.classList.remove('show');
+  }
+});
+
+loadCurrentUser();
 
 // ── Tabs ──────────────────────────────────────────────────────────────────
 function switchTab(name, el) {
@@ -962,11 +1250,13 @@ async function uploadFile(file) {
     document.getElementById('formCard').style.display = '';
 
     // Set now as default start_time
-    if (!document.getElementById('start_time').value) {
+    const startInp = document.getElementById('start_time');
+    if (!startInp.value) {
       const now = new Date();
       const pad = n => String(n).padStart(2, '0');
-      document.getElementById('start_time').value =
+      startInp.value =
         `${pad(now.getDate())}-${pad(now.getMonth()+1)}-${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      applyDateValidation(startInp);  // clear any stale invalid state
     }
 
   } catch(e) {
@@ -1076,6 +1366,12 @@ function updateConditionalFields() {
 // ── Send ──────────────────────────────────────────────────────────────────
 async function sendEmail() {
   if (!state.filepath) { toast('⚠ Vui lòng upload file Excel trước'); return; }
+
+  // Validate tất cả date input trước khi đọc payload
+  if (!validateAllDates()) {
+    toast('⚠ Định dạng ngày tháng không hợp lệ, vui lòng kiểm tra lại');
+    return;
+  }
 
   const get = id => document.getElementById(id)?.value?.trim() || '';
 
