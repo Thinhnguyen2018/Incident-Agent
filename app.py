@@ -39,6 +39,9 @@ from auth import (
     login_required,
 )
 
+# Import translator (gọi 9router để dịch VN→EN)
+from translator import translate_fields, is_configured as translator_configured
+
 load_dotenv()
 
 # ─── Config ──────────────────────────────────────────────────────────────────
@@ -234,6 +237,30 @@ def upload_excel():
     })
 
 
+import re
+_DATE_PATTERN = re.compile(r"^\d{2}-\d{2}-\d{4} \d{2}:\d{2}$")
+
+
+def _validate_date_fields(data: dict, fields: list[str]) -> tuple[bool, str]:
+    """Kiểm tra các trường trong `data` có đúng format DD-MM-YYYY HH:MM.
+
+    Chỉ validate những trường có giá trị (skip nếu rỗng — việc required đã check ở chỗ khác).
+    Returns (ok, error_message).
+    """
+    for f in fields:
+        val = (data.get(f) or "").strip()
+        if not val:
+            continue
+        if not _DATE_PATTERN.match(val):
+            return False, f"Truong '{f}' sai dinh dang. Phai la DD-MM-YYYY HH:MM (vd: 22-04-2026 14:30), nhan duoc: '{val}'"
+        # Parse-check thêm: đảm bảo ngày thực sự hợp lệ (vd không có 31-02)
+        try:
+            datetime.strptime(val, "%d-%m-%Y %H:%M")
+        except ValueError as e:
+            return False, f"Truong '{f}' khong phai ngay hop le: {val} ({e})"
+    return True, ""
+
+
 @app.route("/api/send", methods=["POST"])
 @login_required
 def send_incident():
@@ -270,6 +297,10 @@ def send_incident():
             return jsonify({"error": f"Thieu truong: {', '.join(missing)}"}), 400
         if tt not in ("5", "6", "7"):
             return jsonify({"error": "template_type change phai la 5, 6, hoac 7"}), 400
+        date_fields = ["planned_start", "planned_end", "actual_start", "actual_end"]
+        ok, err = _validate_date_fields(data, date_fields)
+        if not ok:
+            return jsonify({"error": err}), 400
         info = {k: data.get(k, "") for k in [
             "template_type", "service_name", "change_desc", "change_type",
             "planned_start", "planned_end", "impact", "actual_start", "actual_end"
@@ -288,6 +319,9 @@ def send_incident():
             return jsonify({"error": "end_time bat buoc voi template 1 va 4"}), 400
         if tt == "3" and not data.get("solution"):
             return jsonify({"error": "solution bat buoc voi template 3"}), 400
+        ok, err = _validate_date_fields(data, ["start_time", "end_time"])
+        if not ok:
+            return jsonify({"error": err}), 400
         info = {k: data.get(k, "") for k in [
             "template_type", "service_name", "incident_desc",
             "start_time", "end_time", "root_cause", "status", "solution"
@@ -295,6 +329,27 @@ def send_incident():
         log_desc = data.get("incident_desc", "")
         log_time = data.get("start_time", "")
         log_end  = data.get("end_time", "")
+
+    # ── Dịch VN → EN cho các field text (1 API call cho cả batch) ──────────
+    # Các field cần dịch theo category. Field rỗng sẽ được skip trong translator.
+    if category == "change":
+        translate_keys = ["change_desc", "change_type", "impact"]
+    else:
+        translate_keys = ["incident_desc", "root_cause", "status", "solution"]
+
+    to_translate = {k: info.get(k, "") for k in translate_keys if info.get(k, "").strip()}
+    if to_translate and translator_configured():
+        try:
+            translated = translate_fields(to_translate)
+            # Merge vào info dưới key mới "<field>_en" — không đụng field gốc
+            for k, v in translated.items():
+                info[f"{k}_en"] = v
+        except Exception as e:
+            # Translator đã có fallback in-built, nhưng defensive coding
+            app.logger.warning("Translation step failed: %s", e)
+    # Đảm bảo mọi key _en đều tồn tại (fallback = text VN gốc)
+    for k in translate_keys:
+        info.setdefault(f"{k}_en", info.get(k, ""))
 
     results = []
     for owned_by_email, group in df.groupby("Owned By"):

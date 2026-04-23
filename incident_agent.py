@@ -237,11 +237,12 @@ def build_email_html(info: dict, devices: list[dict]) -> tuple[str, str]:
     """Trả về (subject, html_body) theo loại template."""
     t   = info["template_type"]
     svc = info["service_name"]
-    inc = info["incident_desc"]
-    t0  = info["start_time"]
+    inc = info.get("incident_desc", "")
+    inc_en = info.get("incident_desc_en", inc)  # fallback = VN nếu không có bản dịch
+    t0  = info.get("start_time", "")
     t0_en = _fmt_date_en(t0)
     rc  = info.get("root_cause", "")
-    rc_en = rc  # same text used for EN
+    rc_en = info.get("root_cause_en", rc)
 
     date_label = datetime.now().strftime("%d-%m-%Y %H:%M")
 
@@ -306,7 +307,7 @@ gây ảnh hưởng đến dịch vụ <strong>{svc}</strong>.</p>
 <p>GreenNode xin phép thông báo để Quý Khách hàng nắm thông tin và an tâm tiếp tục sử dụng dịch vụ.</p>
 """,
             body_en=f"""
-<p>GreenNode has finished resolving an incident <strong>{inc}</strong>
+<p>GreenNode has finished resolving an incident <strong>{inc_en}</strong>
 impacted to <strong>{svc}</strong>.</p>
 <p><strong>Outage Start:</strong> {t0_en} (GMT+7)<br/>
 <strong>Outage End:</strong> {t1_en} (GMT+7)<br/>
@@ -318,6 +319,7 @@ impacted to <strong>{svc}</strong>.</p>
     # ── Template 2: Xử lý kéo dài (đang diễn ra) ───────────────────────────
     if t == "2":
         status    = info.get("status", "")
+        status_en = info.get("status_en", status)
         return wrap(
             subject_vn=f"SỰ CỐ {svc.upper()} NGÀY {date_label}",
             subject_en=f"INCIDENT OF {svc.upper()} ON {_fmt_date_en(date_label)}",
@@ -333,18 +335,19 @@ Vui lòng theo dõi các email thông báo từ GreenNode về tình hình dịc
 """,
             body_en=f"""
 <p>At present, GreenNode has occurred an incident as followings:</p>
-<p><strong>Incident:</strong> {inc}<br/>
+<p><strong>Incident:</strong> {inc_en}<br/>
 <strong>Impact Service:</strong> {svc}<br/>
 <strong>Outage Start:</strong> {t0_en} (GMT+7)<br/>
 <strong>Root Cause:</strong> {rc_en}<br/>
-<strong>Status:</strong> {status}</p>
+<strong>Status:</strong> {status_en}</p>
 <p>We do apologize to you for this inconvenience. Please follow up on the next emails from GreenNode.</p>
 """,
         )
 
     # ── Template 3: Cập nhật tiến độ ────────────────────────────────────────
     if t == "3":
-        solution = info.get("solution", "")
+        solution    = info.get("solution", "")
+        solution_en = info.get("solution_en", solution)
         return wrap(
             subject_vn=f"CẬP NHẬT TÌNH HÌNH XỬ LÝ SỰ CỐ {svc.upper()} NGÀY {date_label}",
             subject_en=f"INCIDENT UPDATED {svc.upper()} ON {_fmt_date_en(date_label)}",
@@ -359,10 +362,10 @@ ngay khi dịch vụ hoạt động trở lại bình thường.</p>
 <p>GreenNode chân thành xin lỗi Quý Khách hàng vì sự bất tiện này.</p>
 """,
             body_en=f"""
-<p>At present, incident of <strong>{inc}</strong> impacted to <strong>{svc}</strong> is under processed.</p>
+<p>At present, incident of <strong>{inc_en}</strong> impacted to <strong>{svc}</strong> is under processed.</p>
 <p><strong>Outage Start:</strong> {t0_en} (GMT+7)<br/>
 <strong>Root cause:</strong> {rc_en}<br/>
-<strong>Solution:</strong> {solution}</p>
+<strong>Solution:</strong> {solution_en}</p>
 <p>We are focusing on resolving the incident and will keep you updated as soon as possible.</p>
 <p>We do apologize to you for this inconvenience. Please follow up on the next emails from GreenNode.</p>
 """,
@@ -385,7 +388,7 @@ gây ảnh hưởng đến dịch vụ <strong>{svc}</strong>.</p>
 <p>GreenNode xin phép thông báo để Quý Khách hàng nắm thông tin và an tâm tiếp tục sử dụng dịch vụ.</p>
 """,
             body_en=f"""
-<p>GreenNode has finished resolving an incident <strong>{inc}</strong>
+<p>GreenNode has finished resolving an incident <strong>{inc_en}</strong>
 impacted to <strong>{svc}</strong>.</p>
 <p><strong>Outage Start:</strong> {t0_en} (GMT+7)<br/>
 <strong>Outage End:</strong> {t1_en} (GMT+7)<br/>
@@ -399,10 +402,13 @@ impacted to <strong>{svc}</strong>.</p>
     # ════════════════════════════════════════════════════════════════════════
 
     desc         = info.get("change_desc", "")
+    desc_en      = info.get("change_desc_en", desc)
     ctype        = info.get("change_type", "")
+    ctype_en     = info.get("change_type_en", ctype)
     p_start      = info.get("planned_start", "")
     p_end        = info.get("planned_end", "")
     impact       = info.get("impact", "")
+    impact_en    = info.get("impact_en", impact)
     a_start      = info.get("actual_start", "")
     a_end        = info.get("actual_end", "")
     p_start_en   = _fmt_date_en(p_start)
@@ -451,11 +457,11 @@ If you need support, please contact our support team via hotline
             body_en=f"""
 <p>GreenNode would like to inform a maintenance plan as followings:</p>
 <p><strong>Service:</strong> {svc}<br/>
-<strong>Description:</strong> {desc}<br/>
-<strong>Type:</strong> {ctype}<br/>
+<strong>Description:</strong> {desc_en}<br/>
+<strong>Type:</strong> {ctype_en}<br/>
 <strong>Planned Start:</strong> {p_start_en} (GMT+7)<br/>
 <strong>Planned End:</strong> {p_end_en} (GMT+7)<br/>
-<strong>Expected Impact:</strong> {impact}</p>
+<strong>Expected Impact:</strong> {impact_en}</p>
 """,
         )
 
@@ -477,11 +483,11 @@ If you need support, please contact our support team via hotline
             body_en=f"""
 <p>GreenNode would like to update a maintenance schedule as followings:</p>
 <p><strong>Service:</strong> {svc}<br/>
-<strong>Description:</strong> {desc}<br/>
-<strong>Type:</strong> {ctype}<br/>
+<strong>Description:</strong> {desc_en}<br/>
+<strong>Type:</strong> {ctype_en}<br/>
 <strong>Planned Start:</strong> {p_start_en} (GMT+7)<br/>
 <strong>Planned End:</strong> {p_end_en} (GMT+7)<br/>
-<strong>Expected Impact:</strong> {impact}</p>
+<strong>Expected Impact:</strong> {impact_en}</p>
 <p>We apologize in advance for any inconvenience that may be caused.</p>
 """,
         )
@@ -505,13 +511,13 @@ If you need support, please contact our support team via hotline
         body_en=f"""
 <p>GreenNode would like to inform that we have finished the maintenance as follow:</p>
 <p><strong>Service:</strong> {svc}<br/>
-<strong>Description:</strong> {desc}<br/>
-<strong>Type:</strong> {ctype}<br/>
+<strong>Description:</strong> {desc_en}<br/>
+<strong>Type:</strong> {ctype_en}<br/>
 <strong>Planned Start:</strong> {p_start_en} (GMT+7)<br/>
 <strong>Planned End:</strong> {p_end_en} (GMT+7)<br/>
 <strong>Actual Start:</strong> {a_start_en} (GMT+7)<br/>
 <strong>Actual End:</strong> {a_end_en} (GMT+7)<br/>
-<strong>Expected Impact:</strong> {impact}</p>
+<strong>Expected Impact:</strong> {impact_en}</p>
 <p>Please re-check all your services.</p>
 """,
     )
