@@ -8,7 +8,7 @@ import os
 import json
 import uuid
 import secrets as _secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from flask import (
@@ -17,6 +17,9 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+
+# Timezone VN dùng chung cho timestamps trong log + audit
+TZ_VN = timezone(timedelta(hours=7))
 
 # Import core logic từ incident_agent.py
 from incident_agent import (
@@ -369,7 +372,7 @@ def send_incident():
 
     log_entry = {
         "id":         uuid.uuid4().hex[:8],
-        "timestamp":  datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+        "timestamp":  datetime.now(TZ_VN).strftime("%d-%m-%Y %H:%M:%S"),
         "category":   category,
         "template":   tt,
         "service":    data.get("service_name", ""),

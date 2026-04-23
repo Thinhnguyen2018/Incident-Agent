@@ -21,11 +21,21 @@ import requests
 import pandas as pd
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# ── Timezone cố định cho toàn bộ ứng dụng ───────────────────────────────────
+# Server chạy UTC, nhưng người dùng + email đều theo giờ Việt Nam (GMT+7).
+TZ_VN = timezone(timedelta(hours=7))
+
+
+def _now_vn() -> datetime:
+    """Trả về datetime hiện tại ở GMT+7 (naive, để format giống input user)."""
+    return datetime.now(TZ_VN).replace(tzinfo=None)
+
 
 MAIL_MODE = "gmail"
 
@@ -77,7 +87,7 @@ def prompt(label: str, required: bool = True, default: str = "") -> str:
 
 
 def collect_incident_info() -> dict:
-    now_str = datetime.now().strftime("%d-%m-%Y %H:%M")
+    now_str = _now_vn().strftime("%d-%m-%Y %H:%M")
 
     print("\n" + "═" * 60)
     print("  VNG CLOUD — NHẬP THÔNG TIN SỰ CỐ")
@@ -172,7 +182,7 @@ def extract_columns(excel_path: str) -> pd.DataFrame:
 def export_filtered_excel(df: pd.DataFrame, source_path: str) -> str:
     """Xuất file Excel mới chứa 5 cột đã lọc."""
     stem = Path(source_path).stem
-    out_path = str(Path(source_path).parent / f"{stem}_filtered_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
+    out_path = str(Path(source_path).parent / f"{stem}_filtered_{_now_vn().strftime('%Y%m%d_%H%M%S')}.xlsx")
 
     with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Devices")
@@ -244,7 +254,18 @@ def build_email_html(info: dict, devices: list[dict]) -> tuple[str, str]:
     rc  = info.get("root_cause", "")
     rc_en = info.get("root_cause_en", rc)
 
-    date_label = datetime.now().strftime("%d-%m-%Y %H:%M")
+    # date_label dùng trong subject email.
+    # - Template 1-4 (incident): dùng start_time (thời điểm xảy ra sự cố)
+    # - Template 5-7 (change):   dùng planned_start (thời điểm dự kiến bảo trì)
+    # - Nếu field không parse được (format sai / trống) → fallback về giờ VN hiện tại.
+    if t in ("5", "6", "7"):
+        raw_label = info.get("planned_start", "") or info.get("actual_start", "")
+    else:
+        raw_label = info.get("start_time", "")
+    try:
+        date_label = datetime.strptime(raw_label.strip(), "%d-%m-%Y %H:%M").strftime("%d-%m-%Y %H:%M")
+    except (ValueError, AttributeError):
+        date_label = _now_vn().strftime("%d-%m-%Y %H:%M")
 
     vm_note_vn = (
         "<p>Danh sách dịch vụ/thiết bị của Quý Khách bị ảnh hưởng:</p>"
