@@ -1050,7 +1050,8 @@ let state = {
 // ── Date validation (DD-MM-YYYY HH:MM) ────────────────────────────────────
 /**
  * Validate chuỗi có đúng format DD-MM-YYYY HH:MM và là ngày hợp lệ hay không.
- * @returns {{ok: boolean, msg: string}} — ok=true nếu hợp lệ hoặc rỗng.
+ * Trả về object có 2 field: ok (boolean) và msg (string).
+ * ok = true nếu hợp lệ hoặc rỗng.
  */
 function validateDateStr(str) {
   if (!str || !str.trim()) return { ok: true, msg: '' };  // rỗng thì bỏ qua, việc check required để chỗ khác lo
